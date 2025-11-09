@@ -1,1 +1,69 @@
-export const medicineService = () => {};
+// src/services/medicineService.js
+import api from './api';
+
+export const medicineService = {
+  // Get medicines
+  getMedicines: async (params = {}) => {
+    return await api.get('/medicines', { params });
+  },
+
+  // Get medicine by ID
+  getMedicineById: async (id) => {
+    return await api.get(`/medicines/${id}`);
+  },
+
+  // Create medicine (Admin/Pharmacist)
+  createMedicine: async (data) => {
+    return await api.post('/medicines', data);
+  },
+
+  // Update medicine (Admin/Pharmacist)
+  updateMedicine: async (id, data) => {
+    return await api.put(`/medicines/${id}`, data);
+  },
+
+  // Delete medicine (Admin)
+  deleteMedicine: async (id) => {
+    return await api.delete(`/medicines/${id}`);
+  },
+
+  // Get all stocks
+  getAllStocks: async (params = {}) => {
+    return await api.get('/medicines/stocks/all', { params });
+  },
+
+  // Get stock summary
+  getStockSummary: async () => {
+    return await api.get('/medicines/stocks/summary');
+  },
+
+  // Get low stock alerts
+  getLowStockAlerts: async () => {
+    return await api.get('/medicines/stocks/low-stock');
+  },
+
+  // Get expiring medicines
+  getExpiringMedicines: async (days = 30) => {
+    return await api.get('/medicines/stocks/expiring', { params: { days } });
+  },
+
+  // Get stock by ID
+  getStockById: async (id) => {
+    return await api.get(`/medicines/stocks/${id}`);
+  },
+
+  // Create stock
+  createStock: async (data) => {
+    return await api.post('/medicines/stocks', data);
+  },
+
+  // Update stock
+  updateStock: async (id, data) => {
+    return await api.put(`/medicines/stocks/${id}`, data);
+  },
+
+  // Delete stock
+  deleteStock: async (id) => {
+    return await api.delete(`/medicines/stocks/${id}`);
+  },
+};
