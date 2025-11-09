@@ -1,1 +1,6 @@
-export default function RegisterPage(){return <div>Register Page</div>}
+import React, {useState} from 'react';
+import { register as registerUser } from '../../services/authService';
+import { useNavigate } from 'react-router-dom';
+export default function RegisterPage(){ const [email,setEmail]=useState(''); const [name,setName]=useState(''); const [password,setPassword]=useState(''); const nav=useNavigate();
+  const handleSubmit=async(e)=>{ e.preventDefault(); const r = await registerUser({email,name,password}); if(r && r.errCode===0) nav('/login'); else alert('Đăng ký thất bại'); }
+  return (<div className='min-h-screen flex items-center justify-center bg-gray-50 p-4'><form onSubmit={handleSubmit} className='w-full max-w-md bg-white p-6 rounded shadow'><h1 className='text-xl font-semibold mb-4'>Đăng ký</h1><input value={name} onChange={e=>setName(e.target.value)} placeholder='Họ và tên' className='mb-2 p-2 border rounded w-full' /><input value={email} onChange={e=>setEmail(e.target.value)} placeholder='Email' className='mb-2 p-2 border rounded w-full' /><input value={password} onChange={e=>setPassword(e.target.value)} placeholder='Mật khẩu' type='password' className='mb-2 p-2 border rounded w-full' /><button className='mt-2 w-full bg-blue-600 text-white py-2 rounded'>Đăng ký</button></form></div>); }
