@@ -1,0 +1,1 @@
+export default function PatientSearch(){return null}

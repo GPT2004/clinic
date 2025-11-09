@@ -1,0 +1,1 @@
+export default function TodayAppointmentsPage(){return null}

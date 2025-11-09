@@ -1,0 +1,1 @@
+export default function DiseaseReport(){return null}

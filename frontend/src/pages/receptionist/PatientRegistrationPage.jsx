@@ -1,0 +1,1 @@
+export default function PatientRegistrationPage(){return null}

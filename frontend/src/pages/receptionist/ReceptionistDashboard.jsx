@@ -1,0 +1,1 @@
+export default function ReceptionistDashboard(){return null}

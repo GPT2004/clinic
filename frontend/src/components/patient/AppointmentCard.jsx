@@ -1,0 +1,1 @@
+export default function AppointmentCard(){return null}

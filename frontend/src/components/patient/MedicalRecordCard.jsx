@@ -1,0 +1,1 @@
+export default function MedicalRecordCard(){return null}

@@ -1,0 +1,1 @@
+export default function MedicineSearch(){return null}
