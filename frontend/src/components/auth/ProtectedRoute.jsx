@@ -1,31 +1,23 @@
 // frontend/src/components/auth/ProtectedRoute.jsx
-/**
- * Protected Route Component
- * Bảo vệ routes theo role
- */
-
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../common/Loader';
 
 /**
- * ProtectedRoute Component
- * @param {string} role - Required role to access route (optional)
- * @param {string[]} roles - Array of allowed roles (optional)
- * @param {JSX.Element} children - Components to render if authorized
- * @param {string} redirectTo - Where to redirect if unauthorized
+ * Lấy role dạng string an toàn từ user object
  */
-const ProtectedRoute = ({ 
-  role, 
-  roles = [], 
-  children,
-  redirectTo = '/login'
-}) => {
+const getRole = (user) => {
+  if (!user) return null;
+  if (typeof user.role === "string") return user.role;
+  if (typeof user.role === "object") return user.role.name;
+  return null;
+};
+
+const ProtectedRoute = ({ role, roles = [], children }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // Show loader while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -34,33 +26,33 @@ const ProtectedRoute = ({
     );
   }
 
-  // Not authenticated - redirect to login
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // No role requirement - allow access
+  const userRole = getRole(user);
+  console.log("USER ROLE:", userRole, "REQUIRED ROLE:", role || roles);
+
+  // Nếu route không yêu cầu role cụ thể → cho vào luôn
   if (!role && roles.length === 0) {
     return children;
   }
 
-  // Check single role
-  if (role && user.role?.name !== role) {
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  // Check 1 role
+  if (role && userRole.toLowerCase() !== role.toLowerCase()) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  // Check multiple roles
-  if (roles.length > 0 && !roles.includes(user.role?.name)) {
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  // Check nhiều role
+  if (roles.length > 0 && !roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  // User is authorized
   return children;
 };
 
 /**
- * RoleBasedRedirect Component
- * Redirect user to their default dashboard based on role
+ * Tự redirect người dùng về dashboard đúng role
  */
 export const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
@@ -73,124 +65,39 @@ export const RoleBasedRedirect = () => {
     );
   }
 
-  if (!user || !user.role) {
-    return <Navigate to="/login" replace />;
-  }
+  const userRole = getRole(user);
+  if (!userRole) return <Navigate to="/login" replace />;
 
-  // Redirect based on role
-  const roleRedirects = {
-    Admin: '/admin',
-    Doctor: '/doctor',
-    Patient: '/patient',
-    Receptionist: '/receptionist',
-    Pharmacist: '/pharmacist',
-    LabTech: '/lab-tech',
+  const map = {
+    admin: "/admin",
+    doctor: "/doctor",
+    patient: "/patient",
+    receptionist: "/receptionist",
+    pharmacist: "/pharmacist",
+    labtech: "/lab-tech",
   };
 
-  const redirectPath = roleRedirects[user.role.name] || '/login';
-  
-  return <Navigate to={redirectPath} replace />;
+  return <Navigate to={map[userRole.toLowerCase()] || "/login"} replace />;
 };
 
 /**
- * PublicRoute Component
- * Only allow access if NOT authenticated (for login, register pages)
+ * Route chỉ dành cho người chưa đăng nhập
  */
-export const PublicRoute = ({ children, redirectTo }) => {
+export const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  if (loading) return <Loader size="large" />;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader size="large" />
-      </div>
-    );
-  }
+  const userRole = getRole(user);
+  const map = {
+    admin: "/admin",
+    doctor: "/doctor",
+    patient: "/patient",
+    receptionist: "/receptionist",
+    pharmacist: "/pharmacist",
+    labtech: "/lab-tech",
+  };
 
-  // If authenticated, redirect to their dashboard
-  if (user && user.role) {
-    const roleRedirects = {
-      Admin: '/admin',
-      Doctor: '/doctor',
-      Patient: '/patient',
-      Receptionist: '/receptionist',
-      Pharmacist: '/pharmacist',
-      LabTech: '/lab-tech',
-    };
-
-    const redirectPath = redirectTo || roleRedirects[user.role.name] || '/';
-    return <Navigate to={redirectPath} replace />;
-  }
-
-  return children;
-};
-
-/**
- * ConditionalRoute Component
- * Render different components based on conditions
- */
-export const ConditionalRoute = ({ 
-  condition, 
-  whenTrue, 
-  whenFalse,
-  loading: customLoading 
-}) => {
-  const { loading: authLoading } = useAuth();
-  
-  const isLoading = customLoading !== undefined ? customLoading : authLoading;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader size="large" />
-      </div>
-    );
-  }
-
-  return condition ? whenTrue : whenFalse;
-};
-
-/**
- * PermissionGate Component
- * Show/hide content based on permissions
- */
-export const PermissionGate = ({ 
-  permission, 
-  children, 
-  fallback = null 
-}) => {
-  const { can } = useAuth();
-
-  if (!can(permission)) {
-    return fallback;
-  }
-
-  return children;
-};
-
-/**
- * RoleGate Component
- * Show/hide content based on role
- */
-export const RoleGate = ({ 
-  role, 
-  roles = [], 
-  children, 
-  fallback = null 
-}) => {
-  const { hasRole, hasAnyRole } = useAuth();
-
-  // Check single role
-  if (role && !hasRole(role)) {
-    return fallback;
-  }
-
-  // Check multiple roles
-  if (roles.length > 0 && !hasAnyRole(roles)) {
-    return fallback;
-  }
-
-  return children;
+  return userRole ? <Navigate to={map[userRole.toLowerCase()] || "/"} replace /> : children;
 };
 
 export default ProtectedRoute;

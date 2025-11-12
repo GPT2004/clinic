@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 const prisma = require('../../config/database');
 const { hashPassword, comparePassword } = require('../../utils/bcrypt');
-const { ROLES } = require('../../config/constants');
 
 class UsersService {
   async getAllUsers(filters = {}, pagination = { page: 1, limit: 20 }) {
@@ -12,8 +11,11 @@ class UsersService {
       const where = {};
 
       if (filters.role) {
-        where.role = {  // ← Fixed: roles → role
-          name: filters.role
+        where.role = {
+          name: {
+            equals: filters.role,
+            mode: 'insensitive'
+          }
         };
       }
 
@@ -444,9 +446,15 @@ class UsersService {
       const { page, limit } = pagination;
       const skip = (page - 1) * limit;
 
+      // Normalize role name for case-insensitive search
+      const normalizedRoleName = roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase();
+
       const where = {
-        role: {  // ← Fixed: roles → role
-          name: roleName
+        role: {
+          name: {
+            equals: normalizedRoleName,
+            mode: 'insensitive'
+          }
         },
         is_active: true
       };
@@ -464,13 +472,13 @@ class UsersService {
             phone: true,
             avatar_url: true,
             created_at: true,
-            role: {  // ← Fixed: roles → role
+            role: {
               select: {
                 name: true
               }
             },
-            doctors: roleName === ROLES.DOCTOR,
-            patients: roleName === ROLES.PATIENT
+            doctors: normalizedRoleName === 'Doctor',
+            patients: normalizedRoleName === 'Patient'
           },
           orderBy: {
             full_name: 'asc'

@@ -52,3 +52,25 @@ export const appointmentService = {
     return await api.patch(`/appointments/${id}/cancel`, { reason });
   },
 };
+
+// Named exports & convenient wrappers
+export const getAllAppointments = appointmentService.getAppointments;
+
+// getAppointmentsByPatient: wrapper calling getAppointments with patientId param.
+// If your backend supports a dedicated endpoint like /patients/{id}/appointments, you can replace this wrapper.
+export const getAppointmentsByPatient = async (patientId, params = {}) => {
+  const p = { ...(params || {}), patientId };
+  return await appointmentService.getAppointments(p);
+};
+
+export const getAppointmentById = appointmentService.getAppointmentById;
+export const createAppointment = appointmentService.createAppointment;
+export const updateAppointment = appointmentService.updateAppointment;
+export const confirmAppointment = appointmentService.confirmAppointment;
+export const checkInAppointment = appointmentService.checkInAppointment;
+export const startAppointment = appointmentService.startAppointment;
+export const completeAppointment = appointmentService.completeAppointment;
+export const markNoShow = appointmentService.markNoShow;
+export const cancelAppointment = appointmentService.cancelAppointment;
+
+export default appointmentService;

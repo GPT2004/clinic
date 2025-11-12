@@ -72,3 +72,21 @@ export const userService = {
     return await api.delete(`/users/${id}`);
   },
 };
+
+// --- Named exports (so existing imports like `import { getAllUsers } from '.../userService'` work) ---
+export const getAllUsers = userService.getAllUsers;
+export const getUserStats = userService.getUserStats;
+export const getUsersByRole = userService.getUsersByRole;
+export const getMyProfile = userService.getMyProfile;
+export const updateMyProfile = userService.updateMyProfile;
+export const changeMyPassword = userService.changeMyPassword;
+export const getUserById = userService.getUserById;
+export const createUser = userService.createUser;
+export const updateUser = userService.updateUser;
+export const toggleUserStatus = userService.toggleUserStatus;
+export const assignRole = userService.assignRole;
+export const resetUserPassword = userService.resetUserPassword;
+export const deleteUser = userService.deleteUser;
+
+// Keep default-ish export for consumers that import the whole service object
+export default userService;

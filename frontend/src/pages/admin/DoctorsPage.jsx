@@ -1,25 +1,185 @@
-import React, {useEffect, useState} from 'react';
-import PageWrapper from './_AdminWrapper';
+import React, { useEffect, useState } from 'react';
+import AdminLayout from '../../components/admin/AdminLayout';
 import { getAllUsers } from '../../services/userService';
+import { ensureArray } from '../../utils/normalize';
+import { Trash2, Edit2, Search, Stethoscope } from 'lucide-react';
+import EditDoctorModal from '../../components/admin/EditDoctorModal';
+import DeleteDoctorModal from '../../components/admin/DeleteDoctorModal';
+import AddDoctorModal from '../../components/admin/AddDoctorModal';
+import DoctorDetailModal from '../../components/admin/DoctorDetailModal';
 
-export default function DoctorsPage(){
-  const [doctors,setDoctors]=useState([]);
-  const [query,setQuery]=useState('');
-  useEffect(()=>{ (async ()=>{ const r = await getAllUsers({role:'DOCTOR'}); if(r && r.data) setDoctors(r.data); })(); },[]);
-  const filtered = (doctors||[]).filter(d=> (d.fullName||d.name||'').toLowerCase().includes(query.toLowerCase()));
+export default function DoctorsPage() {
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [editingDoctor, setEditingDoctor] = useState(null);
+  const [deletingDoctor, setDeletingDoctor] = useState(null);
+  const [addingDoctor, setAddingDoctor] = useState(false);
+  const [detailDoctor, setDetailDoctor] = useState(null);
+
+  useEffect(() => {
+    loadDoctors();
+  }, []);
+
+  const loadDoctors = async () => {
+    try {
+      setLoading(true);
+      const r = await getAllUsers({ role: 'DOCTOR' });
+      const arr = ensureArray(r);
+      setDoctors(arr);
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = (doctors || []).filter(d =>
+    (d.full_name || d.fullName || d.name || '').toLowerCase().includes(query.toLowerCase()) ||
+    (d.email || '').toLowerCase().includes(query.toLowerCase())
+  );
+
+ 
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Quản lý bác sĩ</h1>
-      <div className="bg-white p-4 rounded shadow mb-4 flex gap-2">
-        <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Tìm kiếm bác sĩ..." className="p-2 border rounded flex-1" />
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">Thêm bác sĩ</button>
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Stethoscope className="text-blue-600" size={32} />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Quản lý bác sĩ</h1>
+                <p className="text-gray-600 mt-1">Quản lý thông tin và lịch khám của bác sĩ</p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setAddingDoctor(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+          >
+            + Thêm bác sĩ
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-4 top-3 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên hoặc email..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+          />
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 w-12">#</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Tên bác sĩ</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Email</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Chuyên môn</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 w-24">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center">
+                      <div className="flex justify-center">
+                        <div className="spinner"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                      Không tìm thấy bác sĩ nào
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((d, i) => (
+                    <tr key={d.id} className="border-b border-gray-200 hover:bg-gray-50 transition cursor-pointer" onClick={() => setDetailDoctor(d)}>
+                      <td className="px-6 py-4 text-sm text-gray-600">{i + 1}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{d.full_name || d.fullName || d.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{d.email}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                          {d.specialty || 'Chưa cập nhật'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setEditingDoctor(d)}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingDoctor(d)}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                            title="Xóa"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        {filtered.length > 0 && (
+          <div className="text-sm text-gray-600">
+            Hiển thị <span className="font-semibold">{filtered.length}</span> bác sĩ
+          </div>
+        )}
       </div>
-      <div className="bg-white p-4 rounded shadow">
-        {filtered.length===0 ? <div className="text-gray-500">Không có bác sĩ</div> :
-        <table className="min-w-full"><thead><tr className="text-left text-sm text-gray-600"><th className="py-2">Tên</th><th className="py-2">Email</th><th className="py-2">Chuyên môn</th><th className="py-2">Hành động</th></tr></thead>
-        <tbody>{filtered.map(d=>(<tr key={d.id} className="border-t"><td className="py-2">{d.fullName||d.name}</td><td className="py-2">{d.email}</td><td className="py-2">{d.specialty||'-'}</td><td className="py-2"><button className="px-2 py-1 bg-yellow-500 text-white rounded mr-2">Sửa</button><button className="px-2 py-1 bg-red-500 text-white rounded">Xóa</button></td></tr>))}</tbody></table>
-        }
-      </div>
-    </div>
+
+      {/* Modals */}
+      {editingDoctor && (
+        <EditDoctorModal
+          doctor={editingDoctor}
+          onClose={() => setEditingDoctor(null)}
+          onSuccess={loadDoctors}
+        />
+      )}
+
+      {deletingDoctor && (
+        <DeleteDoctorModal
+          doctor={deletingDoctor}
+          onClose={() => setDeletingDoctor(null)}
+          onSuccess={loadDoctors}
+        />
+      )}
+      {addingDoctor && (
+        <AddDoctorModal
+          onClose={() => setAddingDoctor(false)}
+          onSuccess={() => {
+            setAddingDoctor(false);
+            loadDoctors();
+          }}
+        />
+      )}
+
+      {detailDoctor && (
+        <DoctorDetailModal
+          doctor={detailDoctor}
+          onClose={() => setDetailDoctor(null)}
+        />
+      )}
+    </AdminLayout>
   );
 }

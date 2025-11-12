@@ -67,3 +67,21 @@ export const medicineService = {
     return await api.delete(`/medicines/stocks/${id}`);
   },
 };
+
+// Named exports (aliases) so existing imports like `import { getAllMedicines } from '.../medicineService'` work
+export const getAllMedicines = medicineService.getMedicines;
+export const getMedicineById = medicineService.getMedicineById;
+export const createMedicine = medicineService.createMedicine;
+export const updateMedicine = medicineService.updateMedicine;
+export const deleteMedicine = medicineService.deleteMedicine;
+
+export const getAllStocks = medicineService.getAllStocks;
+export const getStockSummary = medicineService.getStockSummary;
+export const getLowStockAlerts = medicineService.getLowStockAlerts;
+export const getExpiringMedicines = medicineService.getExpiringMedicines;
+export const getStockById = medicineService.getStockById;
+export const createStock = medicineService.createStock;
+export const updateStock = medicineService.updateStock;
+export const deleteStock = medicineService.deleteStock;
+
+export default medicineService;

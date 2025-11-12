@@ -1,25 +1,27 @@
 import React, {useState} from 'react';
-import { login } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage(){
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
   const [loading,setLoading]=useState(false);
   const navigate = useNavigate();
+  const { login: ctxLogin } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try{
-      const res = await login({email,password});
-      if(res && (res.errCode===0 || res.token)){
-        // naive storage
-        localStorage.setItem('token', res.token || 'demo-token');
-        const role = (res.data && res.data.role) || 'ADMIN';
-        navigate(role.toLowerCase()==='doctor'?'/doctor/dashboard': (role.toLowerCase()==='patient'?'/patient/dashboard':'/admin/dashboard'));
+      // Use AuthContext login so context and storage are updated in one place
+      const res = await ctxLogin(email, password);
+      if (res && res.success && res.user) {
+        const role = res.user.role || 'admin';
+        const r = String(role).toLowerCase();
+        const target = r === 'doctor' ? '/doctor' : r === 'patient' ? '/patient' : '/admin';
+        navigate(target);
       } else {
-        alert(res.message || 'Login failed');
+        alert(res.error || res.message || 'Login failed');
       }
     }catch(e){
       alert('Network error');

@@ -55,3 +55,16 @@ export const reportService = {
     });
   },
 };
+
+// Named exports (aliases)
+export const getReportSummary = reportService.getDashboardStats;
+export const getDashboardStats = reportService.getDashboardStats;
+export const getRevenueReport = reportService.getRevenueReport;
+export const getAppointmentReport = reportService.getAppointmentReport;
+export const getDoctorPerformance = reportService.getDoctorPerformance;
+export const getCommonDiseases = reportService.getCommonDiseases;
+export const getStockReport = reportService.getStockReport;
+export const getPatientReport = reportService.getPatientReport;
+export const exportReport = reportService.exportReport;
+
+export default reportService;

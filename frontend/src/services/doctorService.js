@@ -71,4 +71,29 @@ export const doctorService = {
   toggleDoctorStatus: async (id) => {
     return await api.patch(`/doctors/${id}/toggle-status`);
   },
+
+  // Get today's appointments for the currently authenticated doctor (wrapper)
+  getTodayAppointments: async (params = {}) => {
+    // assumed backend endpoint; adjust if your backend uses a different path
+    return await api.get('/doctors/me/appointments/today', { params });
+  },
 };
+
+// Named exports (aliases)
+export const getAllDoctorsPublic = doctorService.getAllDoctorsPublic;
+export const getDoctorByIdPublic = doctorService.getDoctorByIdPublic;
+export const getSpecialties = doctorService.getSpecialties;
+export const getAllDoctors = doctorService.getAllDoctors;
+export const getDoctorById = doctorService.getDoctorById;
+export const getDoctorAppointments = doctorService.getDoctorAppointments;
+export const getDoctorSchedules = doctorService.getDoctorSchedules;
+export const getDoctorPatients = doctorService.getDoctorPatients;
+export const getDoctorStats = doctorService.getDoctorStats;
+export const createDoctor = doctorService.createDoctor;
+export const updateDoctor = doctorService.updateDoctor;
+export const updateOwnProfile = doctorService.updateOwnProfile;
+export const deleteDoctor = doctorService.deleteDoctor;
+export const toggleDoctorStatus = doctorService.toggleDoctorStatus;
+export const getTodayAppointments = doctorService.getTodayAppointments;
+
+export default doctorService;

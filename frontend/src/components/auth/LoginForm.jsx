@@ -1,3 +1,4 @@
+﻿/* eslint-disable no-console */
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -9,7 +10,7 @@ import Alert from '../common/Alert';
 export default function LoginForm() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,32 +26,64 @@ export default function LoginForm() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      setError('Vui lòng nhập đầy đủ thông tin');
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+
+  try {
+    const result = await login(formData.email, formData.password);
+    console.log("LOGIN RESULT:", result);
+
+    const user = result?.user;
+    console.log("USER AFTER LOGIN:", user);
+
+    if (!result.success || !user) {
+      setError(result.error || "Đăng nhập thất bại");
       return;
     }
 
-    setLoading(true);
-    setError('');
+    const role = user?.role?.name || user?.role;
 
-    try {
-      const result = await login(formData.email, formData.password);
-      
-      if (result.success) {
-        const role = result.user?.role?.name;
-        const redirectPath = role ? `/${role.toLowerCase()}` : '/';
-        navigate(redirectPath);
-      } else {
-        setError(result.error || 'Đăng nhập thất bại');
-      }
-    } catch (err) {
-      setError('Có lỗi xảy ra. Vui lòng thử lại');
-    } finally {
-      setLoading(false);
-    }
-  };
+console.log("ROLE DETECTED RAW:", user.role);
+console.log("ROLE FINAL:", role);
+
+let redirectPath = "/";
+
+switch (role?.toLowerCase()) {
+  case "admin":
+    redirectPath = "/admin";
+    break;
+  case "doctor":
+    redirectPath = "/doctor";
+    break;
+  case "patient":
+    redirectPath = "/patient";
+    break;
+  case "staff":
+  case "receptionist":
+    redirectPath = "/staff";
+    break;
+  default:
+    redirectPath = "/";
+    break;
+}
+
+console.log("REDIRECT TO:", redirectPath);
+
+navigate(redirectPath, { replace: true });
+
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    setError("Lỗi đăng nhập");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

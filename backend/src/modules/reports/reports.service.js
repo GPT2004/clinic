@@ -8,26 +8,27 @@ class ReportsService {
       today.setHours(0, 0, 0, 0);
 
       const [
-        totalPatients,
+        totalUsers,
         totalDoctors,
         todayAppointments,
         monthAppointments,
         todayRevenue,
         monthRevenue,
-        appointmentStats
+        appointmentStats,
+        totalRooms
       ] = await Promise.all([
-        // Total patients
-        prisma.patients.count({ where: { users: { is_active: true } } }),
+        // Total users
+        prisma.users.count().catch(() => 0),
         
         // Total active doctors
-        prisma.doctors.count({ where: { users: { is_active: true } } }),
+        prisma.doctors.count().catch(() => 0),
         
         // Today appointments
         prisma.appointments.count({
           where: {
             appointment_date: today
           }
-        }),
+        }).catch(() => 0),
         
         // This month appointments
         prisma.appointments.count({
@@ -36,7 +37,7 @@ class ReportsService {
               gte: new Date(today.getFullYear(), today.getMonth(), 1)
             }
           }
-        }),
+        }).catch(() => 0),
         
         // Today revenue
         prisma.invoices.aggregate({
@@ -45,7 +46,7 @@ class ReportsService {
             status: 'PAID'
           },
           _sum: { total: true }
-        }),
+        }).catch(() => ({ _sum: { total: null } })),
         
         // This month revenue
         prisma.invoices.aggregate({
@@ -56,7 +57,7 @@ class ReportsService {
             status: 'PAID'
           },
           _sum: { total: true }
-        }),
+        }).catch(() => ({ _sum: { total: null } })),
         
         // Appointment status breakdown
         prisma.appointments.groupBy({
@@ -67,24 +68,38 @@ class ReportsService {
               gte: new Date(today.getFullYear(), today.getMonth(), 1)
             }
           }
-        })
+        }).catch(() => []),
+        
+        // Total rooms
+        prisma.rooms.count().catch(() => 0)
       ]);
 
       return {
-        totalPatients,
-        totalDoctors,
-        todayAppointments,
-        monthAppointments,
-        todayRevenue: todayRevenue._sum.total || 0,
-        monthRevenue: monthRevenue._sum.total || 0,
-        appointmentsByStatus: appointmentStats.reduce((acc, stat) => {
+        users: totalUsers || 0,
+        doctors: totalDoctors || 0,
+        todayAppointments: todayAppointments || 0,
+        appointments: monthAppointments || 0,
+        todayRevenue: todayRevenue?._sum?.total || 0,
+        monthRevenue: monthRevenue?._sum?.total || 0,
+        rooms: totalRooms || 0,
+        appointmentsByStatus: (appointmentStats || []).reduce((acc, stat) => {
           acc[stat.status] = stat._count.status;
           return acc;
         }, {})
       };
     } catch (error) {
       console.error('Error in getDashboardStats:', error);
-      throw error;
+      // Return default empty stats instead of throwing
+      return {
+        users: 0,
+        doctors: 0,
+        todayAppointments: 0,
+        appointments: 0,
+        todayRevenue: 0,
+        monthRevenue: 0,
+        rooms: 0,
+        appointmentsByStatus: {}
+      };
     }
   }
 

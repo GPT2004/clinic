@@ -23,3 +23,10 @@ export const aiService = {
     });
   },
 };
+
+// Named exports
+export const checkSymptoms = aiService.checkSymptoms;
+export const predictRisk = aiService.predictRisk;
+export const analyzeMedicalImage = aiService.analyzeMedicalImage;
+
+export default aiService;
