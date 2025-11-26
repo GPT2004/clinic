@@ -20,6 +20,12 @@ router.get(
   scheduleController.getSchedules
 );
 
+// Timeslot routes - MUST come before /:id route!
+router.get(
+  '/timeslots/available',
+  scheduleController.getAvailableTimeslots
+);
+
 router.get(
   '/:id',
   authenticate,
@@ -49,12 +55,7 @@ router.delete(
   scheduleController.deleteSchedule
 );
 
-// Timeslot routes
-router.get(
-  '/timeslots/available',
-  scheduleController.getAvailableTimeslots
-);
-
+// Timeslot routes - continued
 router.post(
   '/timeslots',
   authenticate,

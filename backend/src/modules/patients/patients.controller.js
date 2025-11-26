@@ -1,5 +1,6 @@
 const patientsService = require('./patients.service');
 const { successResponse } = require('../../utils/response');
+const { uploadBuffer } = require('../../utils/cloudinary');
 
 class PatientsController {
   async getAllPatients(req, res, next) {
@@ -125,13 +126,131 @@ class PatientsController {
   async getMyProfile(req, res, next) {
     try {
       const userId = req.user.id;
-      const patient = await patientsService.getPatientByUserId(userId);
+      // Ensure a patient row exists for this user; create a minimal one if missing
+      const patient = await patientsService.ensurePatientForUser(userId);
 
+      if (!patient) {
+        const err = new Error('Patient profile not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      return successResponse(res, patient, 'Profile retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMyPatients(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const result = await patientsService.getPatientsByOwner(userId);
+      return successResponse(res, result, 'My patients retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMySharedMedicalRecords(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const rows = await patientsService.getSharedMedicalRecordsForUser(userId);
+      return successResponse(res, rows, 'Shared medical records for user retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createDependentPatient(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const patientData = req.validatedBody;
+      const newPatient = await patientsService.createDependentPatient(userId, patientData);
+      return successResponse(res, newPatient, 'Dependent patient created successfully', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateDependentProfile(req, res, next) {
+    try {
+      const ownerId = req.user.id;
+      const { id } = req.params;
+      const updateData = req.validatedBody;
+
+      if (req.file) {
+        // Support both memory and disk storage from multer
+        const fs = require('fs').promises;
+        let buffer;
+        if (req.file.buffer) {
+          buffer = req.file.buffer;
+        } else if (req.file.path) {
+          buffer = await fs.readFile(req.file.path);
+        }
+
+        if (buffer) {
+          const options = {
+            folder: process.env.CLOUDINARY_AVATAR_FOLDER || 'avatars',
+            resource_type: 'image',
+            public_id: `patient_${id}_${Date.now()}`
+          };
+          const result = await uploadBuffer(buffer, options);
+          updateData.avatar_url = result.secure_url;
+
+          // remove local file if present
+          if (req.file.path) {
+            try { await fs.unlink(req.file.path); } catch (e) {}
+          }
+        }
+      }
+
+      const updatedPatient = await patientsService.updateDependentPatient(ownerId, parseInt(id), updateData);
+
+      if (!updatedPatient) {
+        throw new Error('Patient not found or not authorized');
+      }
+
+      return successResponse(res, updatedPatient, 'Dependent profile updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteMyDependent(req, res, next) {
+    try {
+      const ownerId = req.user.id;
+      const { id } = req.params;
+      const patient = await patientsService.getPatientById(parseInt(id));
+      if (!patient) {
+        throw new Error('Patient not found');
+      }
+
+      // Only owner or linked user can delete
+      if (patient.owner_user_id !== ownerId && patient.user_id !== ownerId) {
+        const err = new Error('Not authorized to delete this patient');
+        err.status = 403;
+        throw err;
+      }
+
+      await patientsService.deletePatient(parseInt(id));
+      return successResponse(res, null, 'Dependent patient deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteMyProfile(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const patient = await patientsService.getPatientByUserId(userId);
       if (!patient) {
         throw new Error('Patient profile not found');
       }
 
-      return successResponse(res, patient, 'Profile retrieved successfully');
+      await patientsService.deletePatient(patient.id);
+
+      // Optionally you may want to revoke tokens / logout the user on the client side.
+      return successResponse(res, null, 'Your profile has been deleted');
     } catch (error) {
       next(error);
     }
@@ -141,6 +260,31 @@ class PatientsController {
     try {
       const userId = req.user.id;
       const updateData = req.validatedBody;
+
+      // Nếu có file upload, upload lên Cloudinary và thêm đường dẫn vào updateData
+      if (req.file) {
+        const fs = require('fs').promises;
+        let buffer;
+        if (req.file.buffer) {
+          buffer = req.file.buffer;
+        } else if (req.file.path) {
+          buffer = await fs.readFile(req.file.path);
+        }
+
+        if (buffer) {
+          const options = {
+            folder: process.env.CLOUDINARY_AVATAR_FOLDER || 'avatars',
+            resource_type: 'image',
+            public_id: `patient_user_${userId}_${Date.now()}`
+          };
+          const result = await uploadBuffer(buffer, options);
+          updateData.avatar_url = result.secure_url;
+
+          if (req.file.path) {
+            try { await fs.unlink(req.file.path); } catch (e) {}
+          }
+        }
+      }
 
       const updatedPatient = await patientsService.updatePatientProfile(
         userId,
@@ -163,6 +307,16 @@ class PatientsController {
       const newPatient = await patientsService.createPatient(patientData);
 
       return successResponse(res, newPatient, 'Patient created successfully', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createPatientQuick(req, res, next) {
+    try {
+      const patientData = req.validatedBody;
+      const newPatient = await patientsService.createPatientWithoutUser(patientData);
+      return successResponse(res, newPatient, 'Patient (quick) created successfully', 201);
     } catch (error) {
       next(error);
     }

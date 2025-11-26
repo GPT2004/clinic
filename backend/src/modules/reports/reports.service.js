@@ -6,6 +6,9 @@ class ReportsService {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      // start of tomorrow for exclusive upper-bound comparisons
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       const [
         totalUsers,
@@ -17,16 +20,19 @@ class ReportsService {
         appointmentStats,
         totalRooms
       ] = await Promise.all([
-        // Total users
-        prisma.users.count().catch(() => 0),
+        // Total active users
+        prisma.users.count({ where: { is_active: true } }).catch(() => 0),
         
-        // Total active doctors
-        prisma.doctors.count().catch(() => 0),
+        // Total active doctors (joined user must be active)
+        prisma.doctors.count({ where: { user: { is_active: true } } }).catch(() => 0),
         
-        // Today appointments
+        // Today appointments (use range [today, tomorrow) to include all times today)
         prisma.appointments.count({
           where: {
-            appointment_date: today
+            appointment_date: {
+              gte: today,
+              lt: tomorrow
+            }
           }
         }).catch(() => 0),
         
@@ -39,33 +45,35 @@ class ReportsService {
           }
         }).catch(() => 0),
         
-        // Today revenue
+        // Today revenue (payments created today)
         prisma.invoices.aggregate({
           where: {
-            created_at: { gte: today },
+            created_at: { gte: today, lt: tomorrow },
             status: 'PAID'
           },
           _sum: { total: true }
         }).catch(() => ({ _sum: { total: null } })),
         
-        // This month revenue
+        // This month revenue (between start of month and start of next month)
         prisma.invoices.aggregate({
           where: {
             created_at: {
-              gte: new Date(today.getFullYear(), today.getMonth(), 1)
+              gte: new Date(today.getFullYear(), today.getMonth(), 1),
+              lt: new Date(today.getFullYear(), today.getMonth() + 1, 1)
             },
             status: 'PAID'
           },
           _sum: { total: true }
         }).catch(() => ({ _sum: { total: null } })),
         
-        // Appointment status breakdown
+        // Appointment status breakdown for this month
         prisma.appointments.groupBy({
           by: ['status'],
           _count: { status: true },
           where: {
             appointment_date: {
-              gte: new Date(today.getFullYear(), today.getMonth(), 1)
+              gte: new Date(today.getFullYear(), today.getMonth(), 1),
+              lt: new Date(today.getFullYear(), today.getMonth() + 1, 1)
             }
           }
         }).catch(() => []),

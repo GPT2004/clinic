@@ -20,6 +20,13 @@ router.get(
   invoiceController.getInvoices
 );
 
+// Get invoices by current patient
+router.get(
+  '/by-patient',
+  authenticate,
+  invoiceController.getInvoicesByPatient
+);
+
 // Get revenue summary
 router.get(
   '/reports/revenue',
@@ -28,12 +35,7 @@ router.get(
   invoiceController.getRevenueSummary
 );
 
-// Get invoice by ID
-router.get(
-  '/:id',
-  authenticate,
-  invoiceController.getInvoiceById
-);
+// (Get invoice by ID route placed after more specific routes)
 
 // Create invoice (Receptionist/Admin)
 router.post(
@@ -42,6 +44,28 @@ router.post(
   authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
   validate(createInvoiceSchema),
   invoiceController.createInvoice
+);
+
+// Create invoice from prescription (Receptionist/Admin)
+router.post(
+  '/from-prescription',
+  authenticate,
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  invoiceController.createFromPrescription
+);
+
+// Download invoice PDF
+router.get(
+  '/:id/pdf',
+  authenticate,
+  invoiceController.downloadInvoicePDF
+);
+
+// Get invoice by ID
+router.get(
+  '/:id',
+  authenticate,
+  invoiceController.getInvoiceById
 );
 
 // Update invoice

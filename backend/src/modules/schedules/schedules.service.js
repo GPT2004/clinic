@@ -65,9 +65,16 @@ class ScheduleService {
       },
     });
 
-    // Auto-create timeslots if requested
-    if (data.auto_create_timeslots) {
-      await this.generateTimeslots(schedule.id, data.slot_duration || 20);
+    // Auto-create timeslots automatically
+    const slotDuration = data.slot_duration_minutes || data.slot_duration || 20;
+    try {
+      console.log(`📅 [SCHEDULE] Creating timeslots for schedule ID: ${schedule.id}, duration: ${slotDuration}min`);
+      await this.generateTimeslots(schedule.id, slotDuration);
+      console.log(`✅ [SCHEDULE] Timeslots created successfully`);
+    } catch (err) {
+      console.error(`❌ [SCHEDULE] Error creating timeslots:`, err.message);
+      console.error(`❌ [SCHEDULE] Full error:`, err);
+      console.error(`❌ [SCHEDULE] Stack:`, err.stack);
     }
 
     return schedule;
@@ -82,9 +89,18 @@ class ScheduleService {
       throw new Error('Schedule not found');
     }
 
+    console.log(`🔧 [GENERATETIMESLOTS] Schedule found:`, {
+      doctor_id: schedule.doctor_id,
+      date: schedule.date,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+    });
+
     const timeslots = [];
     const startTime = this.timeToMinutes(schedule.start_time);
     const endTime = this.timeToMinutes(schedule.end_time);
+
+    console.log(`⏰ [GENERATETIMESLOTS] Time range: ${startTime}min - ${endTime}min (duration: ${duration_minutes}min)`);
 
     for (let time = startTime; time < endTime; time += duration_minutes) {
       const start = this.minutesToTime(time);
@@ -101,24 +117,41 @@ class ScheduleService {
       });
     }
 
+    console.log(`📝 [GENERATETIMESLOTS] Generated ${timeslots.length} timeslots`);
+
     // Bulk create timeslots
-    await prisma.timeslots.createMany({
+    const result = await prisma.timeslots.createMany({
       data: timeslots,
       skipDuplicates: true,
     });
+
+    console.log(`✅ [GENERATETIMESLOTS] Created ${result.count} timeslots in database`);
 
     return timeslots;
   }
 
   timeToMinutes(timeString) {
-    const [hours, minutes] = timeString.split(':').map(Number);
+    let timeStr;
+    
+    // Handle Date object from database
+    if (timeString instanceof Date) {
+      const hours = String(timeString.getUTCHours()).padStart(2, '0');
+      const minutes = String(timeString.getUTCMinutes()).padStart(2, '0');
+      timeStr = `${hours}:${minutes}`;
+    } else {
+      timeStr = timeString;
+    }
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
   }
 
   minutesToTime(minutes) {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00.000Z`;
+    // Return as Date object to match database Time(6) type
+    return new Date(`1970-01-01T${timeStr}`);
   }
 
   async getSchedules(filters, user) {

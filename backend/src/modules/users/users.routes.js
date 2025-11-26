@@ -13,6 +13,7 @@ const {
   toggleUserStatusSchema,
   assignRoleSchema
 } = require('./users.validator');
+const { uploadSingle } = require('../../middlewares/upload.middleware');
 
 router.use(authenticate);
 
@@ -92,10 +93,23 @@ router.post('/:id/reset-password',
   usersController.resetPassword
 );
 
+// Upload avatar (Admin only)
+router.put('/:id/avatar',
+  authorize(['Admin']),
+  uploadSingle('avatar'),
+  usersController.uploadAvatar
+);
+
 // Delete user (Admin only)
 router.delete('/:id', 
   authorize(['Admin']), 
   usersController.deleteUser
+);
+
+// Restore soft-deleted user (Admin only)
+router.post('/:id/restore',
+  authorize(['Admin']),
+  usersController.restoreUser
 );
 
 module.exports = router;

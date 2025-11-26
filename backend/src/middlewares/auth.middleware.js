@@ -15,7 +15,11 @@ const authenticate = async (req, res, next) => {
 
     const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { role: true },
+      include: {
+        role: true,
+        patients: true,
+        doctors: true,
+      },
     });
 
     if (!user || !user.is_active) {
@@ -39,7 +43,11 @@ const optionalAuth = async (req, res, next) => {
 
       const user = await prisma.users.findUnique({
         where: { id: decoded.userId },
-        include: { role: true },
+        include: {
+          role: true,
+          patients: true,
+          doctors: true,
+        },
       });
 
       if (user && user.is_active) {

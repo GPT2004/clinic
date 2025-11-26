@@ -37,6 +37,11 @@ export const invoiceService = {
     });
   },
 
+  // Create invoice from prescription (Receptionist/Admin)
+  createFromPrescription: async (prescriptionId) => {
+    return await api.post('/invoices/from-prescription', { prescription_id: prescriptionId });
+  },
+
   // Refund invoice (Admin)
   refundInvoice: async (id, reason) => {
     return await api.patch(`/invoices/${id}/refund`, { reason });
@@ -49,7 +54,7 @@ export const invoiceService = {
 
   // Download invoice PDF
   downloadInvoicePDF: async (id) => {
-    return await api.get(`/invoices/${id}/download`, {
+    return await api.get(`/invoices/${id}/pdf`, {
       responseType: 'blob',
     });
   },

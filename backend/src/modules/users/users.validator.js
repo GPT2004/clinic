@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 const createUserSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(6).required(),
   full_name: Joi.string().required(),
   phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
@@ -11,7 +11,7 @@ const createUserSchema = Joi.object({
 });
 
 const updateUserSchema = Joi.object({
-  email: Joi.string().email().optional(),
+  email: Joi.string().email({ tlds: { allow: false } }).optional(),
   full_name: Joi.string().optional(),
   phone: Joi.string().pattern(/^[0-9]{10,11}$/).optional(),
   dob: Joi.date().max('now').optional(),

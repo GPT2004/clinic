@@ -86,7 +86,7 @@ export const API_CONFIG = {
       base: '/prescriptions',
       approve: (id) => `/prescriptions/${id}/approve`,
       dispense: (id) => `/prescriptions/${id}/dispense`,
-      download: (id) => `/prescriptions/${id}/download`,
+      download: (id) => `/prescriptions/${id}/pdf`,
     },
 
     // Medicines
@@ -104,7 +104,7 @@ export const API_CONFIG = {
       revenue: '/invoices/reports/revenue',
       pay: (id) => `/invoices/${id}/pay`,
       refund: (id) => `/invoices/${id}/refund`,
-      download: (id) => `/invoices/${id}/download`,
+      download: (id) => `/invoices/${id}/pdf`,
     },
 
     // Lab Orders

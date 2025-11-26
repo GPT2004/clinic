@@ -9,6 +9,8 @@ const createScheduleSchema = Joi.object({
   recurrent_rule: Joi.string().valid('DAILY', 'WEEKLY', 'MONTHLY').optional(),
   auto_create_timeslots: Joi.boolean().optional(),
   slot_duration: Joi.number().integer().min(10).max(120).optional(),
+  slot_duration_minutes: Joi.number().integer().min(10).max(120).optional(), // Frontend sends this
+  capacity: Joi.number().integer().optional(), // Frontend might send this too
 });
 
 const updateScheduleSchema = Joi.object({

@@ -108,7 +108,8 @@ class RoomsController {
   async deleteRoom(req, res, next) {
     try {
       const { id } = req.params;
-      await roomsService.deleteRoom(parseInt(id));
+      const userId = req.user.id;
+      await roomsService.deleteRoom(parseInt(id), userId);
 
       return successResponse(res, null, 'Room deleted successfully');
     } catch (error) {
@@ -128,6 +129,37 @@ class RoomsController {
       }
 
       return successResponse(res, updatedRoom, 'Room status updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restoreRoom(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      await roomsService.restoreRoom(parseInt(id), userId);
+
+      return successResponse(res, null, 'Room restored successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDeletedRooms(req, res, next) {
+    try {
+      const { page = 1, limit = 20, name } = req.query;
+
+      const filters = {};
+      if (name) filters.name = name;
+
+      const result = await roomsService.getDeletedRooms(filters, {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+
+      return successResponse(res, result, 'Deleted rooms retrieved successfully');
     } catch (error) {
       next(error);
     }

@@ -5,7 +5,9 @@ const createMedicalRecordSchema = Joi.object({
   patient_id: Joi.number().integer().required(),
   doctor_id: Joi.number().integer().optional(), // Optional for doctors
   diagnosis: Joi.string().required(),
-  notes: Joi.string().optional(),
+  notes: Joi.string().optional().allow(null, ''),
+  exam_results: Joi.string().optional().allow(null, ''),
+  lab_tests: Joi.string().optional().allow(null, ''),
   attachments: Joi.array().items(
     Joi.object({
       filename: Joi.string().required(),
@@ -13,12 +15,14 @@ const createMedicalRecordSchema = Joi.object({
       mimetype: Joi.string().optional(),
       size: Joi.number().optional(),
     })
-  ).optional(),
+  ).optional().allow(null),
 });
 
 const updateMedicalRecordSchema = Joi.object({
   diagnosis: Joi.string().optional(),
-  notes: Joi.string().optional(),
+  notes: Joi.string().optional().allow(null, ''),
+  exam_results: Joi.string().optional().allow(null, ''),
+  lab_tests: Joi.string().optional().allow(null, ''),
   attachments: Joi.array().items(
     Joi.object({
       filename: Joi.string().required(),
@@ -26,7 +30,7 @@ const updateMedicalRecordSchema = Joi.object({
       mimetype: Joi.string().optional(),
       size: Joi.number().optional(),
     })
-  ).optional(),
+  ).optional().allow(null),
 });
 
 module.exports = {

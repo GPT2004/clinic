@@ -29,9 +29,25 @@ const updateStockSchema = Joi.object({
   quantity: Joi.number().integer().min(0).optional(),
 });
 
+const importMedicinesSchema = Joi.object({
+  medicines: Joi.array().items(
+    Joi.object({
+      name: Joi.string().required(),
+      code: Joi.string().optional(),
+      description: Joi.string().optional(),
+      unit: Joi.string().optional(),
+      price: Joi.number().integer().min(0).optional(),
+      batch_number: Joi.string().optional(),
+      expiry_date: Joi.string().required(), // YYYY-MM-DD format
+      quantity: Joi.number().integer().min(1).required(),
+    })
+  ).min(1).required(),
+});
+
 module.exports = {
   createMedicineSchema,
   updateMedicineSchema,
   createStockSchema,
   updateStockSchema,
+  importMedicinesSchema,
 };

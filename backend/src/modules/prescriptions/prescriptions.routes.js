@@ -18,12 +18,7 @@ router.get(
   prescriptionController.getPrescriptions
 );
 
-// Get prescription by ID
-router.get(
-  '/:id',
-  authenticate,
-  prescriptionController.getPrescriptionById
-);
+// (Get prescription by ID placed after more specific routes)
 
 // Create prescription (Doctor only)
 router.post(
@@ -51,12 +46,44 @@ router.patch(
   prescriptionController.approvePrescription
 );
 
+// Notify reception (Doctor/Admin) - broadcast prescription ready for invoicing
+router.post(
+  '/:id/notify-reception',
+  authenticate,
+  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
+  prescriptionController.notifyReception
+);
+
+// Get prescriptions waiting for invoicing (Receptionist)
+router.get(
+  '/for-invoicing',
+  authenticate,
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  prescriptionController.getForInvoicing
+);
+
 // Dispense prescription (Pharmacist only)
+const { dispensePrescriptionSchema } = require('./prescriptions.validator');
 router.patch(
   '/:id/dispense',
   authenticate,
   authorize([ROLES.PHARMACIST, ROLES.ADMIN]),
+  validate(dispensePrescriptionSchema),
   prescriptionController.dispensePrescription
+);
+
+// Download prescription PDF
+router.get(
+  '/:id/pdf',
+  authenticate,
+  prescriptionController.downloadPrescriptionPDF
+);
+
+// Get prescription by ID
+router.get(
+  '/:id',
+  authenticate,
+  prescriptionController.getPrescriptionById
 );
 
 // Delete prescription (Doctor/Admin, DRAFT only)

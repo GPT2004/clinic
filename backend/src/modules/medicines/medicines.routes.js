@@ -10,6 +10,7 @@ const {
   updateMedicineSchema,
   createStockSchema,
   updateStockSchema,
+  importMedicinesSchema,
 } = require('./medicines.validator');
 const { ROLES } = require('../../config/constants');
 
@@ -45,8 +46,30 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.PHARMACIST]),
   medicineController.deleteMedicine
+);
+
+router.post(
+  '/:id/restore',
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.PHARMACIST]),
+  medicineController.restoreMedicine
+);
+
+router.post(
+  '/import',
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.PHARMACIST]),
+  validate(importMedicinesSchema),
+  medicineController.importMedicines
+);
+
+// Get total stock for a medicine (must be before /stocks/ routes)
+router.get(
+  '/:id/stock',
+  authenticate,
+  medicineController.getStockByMedicineId
 );
 
 // Stock routes

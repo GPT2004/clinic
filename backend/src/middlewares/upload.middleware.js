@@ -22,9 +22,9 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = uploadDirs.medicalRecords;
 
-    if (req.baseUrl.includes('avatar')) {
+    if (req.baseUrl && req.baseUrl.includes('avatar')) {
       uploadPath = uploadDirs.avatars;
-    } else if (req.baseUrl.includes('lab')) {
+    } else if (req.baseUrl && req.baseUrl.includes('lab')) {
       uploadPath = uploadDirs.labResults;
     }
 

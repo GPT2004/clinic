@@ -32,6 +32,11 @@ export const medicalRecordService = {
     return await api.delete(`/medical-records/${id}`);
   },
 
+  // Send medical record to patient (Doctor)
+  sendToPatient: async (id) => {
+    return await api.post(`/medical-records/${id}/send-to-patient`);
+  },
+
   // Upload attachment
   uploadAttachment: async (id, file) => {
     const formData = new FormData();

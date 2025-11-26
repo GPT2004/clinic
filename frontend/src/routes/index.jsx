@@ -6,17 +6,23 @@ import { ROLES } from '../utils/constants';
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
+const ConfirmRegistrationPage = lazy(() => import('../pages/auth/ConfirmRegistration'));
 
 // Patient Pages
 const PatientDashboard = lazy(() => import('../pages/patient/PatientDashboard'));
 const AppointmentsPage = lazy(() => import('../pages/patient/AppointmentsPage'));
+const PatientAppointmentsPage = lazy(() => import('../pages/patient/PatientAppointmentsPage'));
 const BookAppointmentPage = lazy(() => import('../pages/patient/BookAppointmentPage'));
 const MedicalRecordsPage = lazy(() => import('../pages/patient/MedicalRecordsPage'));
+const MessagesPage = lazy(() => import('../pages/patient/MessagesPage'));
+const FAQPage = lazy(() => import('../pages/patient/FAQPage'));
 const PrescriptionsPage = lazy(() => import('../pages/patient/PrescriptionsPage'));
 const LabResultsPage = lazy(() => import('../pages/patient/LabResultsPage'));
 const InvoicesPage = lazy(() => import('../pages/patient/InvoicesPage'));
+const InvoicesDetailPage = lazy(() => import('../pages/patient/InvoicesDetailPage'));
 const AISymptomCheckerPage = lazy(() => import('../pages/patient/AISymptomCheckerPage'));
 const ProfilePage = lazy(() => import('../pages/patient/ProfilePage'));
+const DoctorPublicDetail = lazy(() => import('../pages/patient/DoctorDetail'));
 
 // Doctor Pages
 const DoctorDashboard = lazy(() => import('../pages/doctor/DoctorDashboard'));
@@ -28,15 +34,27 @@ const PrescriptionPage = lazy(() => import('../pages/doctor/PrescriptionPage'));
 const LabOrderPage = lazy(() => import('../pages/doctor/LabOrderPage'));
 const AIToolsPage = lazy(() => import('../pages/doctor/AIToolsPage'));
 const DoctorProfilePage = lazy(() => import('../pages/doctor/DoctorProfilePage'));
+const DoctorMedicalRecordsPage = lazy(() => import('../pages/doctor/MedicalRecordsPage'));
 
 // Receptionist Pages
-const ReceptionistDashboard = lazy(() => import('../pages/receptionist/ReceptionistDashboard'));
+const ReceptionistDashboard = lazy(() => import('../pages/receptionist/ReceptionistDashboardV2'));
 const AppointmentManagementPage = lazy(() => import('../pages/receptionist/AppointmentManagementPage'));
 const PatientRegistrationPage = lazy(() => import('../pages/receptionist/PatientRegistrationPage'));
 const CheckInPage = lazy(() => import('../pages/receptionist/CheckInPage'));
 const InvoicePage = lazy(() => import('../pages/receptionist/InvoicePage'));
+const PrescriptionsInbox = lazy(() => import('../pages/receptionist/PrescriptionsInbox'));
 const TimeslotManagementPage = lazy(() => import('../pages/receptionist/TimeslotManagementPage'));
 const DailyReportPage = lazy(() => import('../pages/receptionist/DailyReportPage'));
+
+// LabTech Pages
+const LabTechDashboard = lazy(() => import('../pages/labtech/Dashboard'));
+const LabOrdersPage = lazy(() => import('../pages/labtech/LabOrdersPage'));
+
+// Pharmacist Pages
+const PharmacistDashboard = lazy(() => import('../pages/pharmacist/Dashboard'));
+const PharmacistMedicinesPage = lazy(() => import('../pages/pharmacist/MedicinesPage'));
+const PharmacistPrescriptionsPage = lazy(() => import('../pages/pharmacist/PrescriptionsPage'));
+const PharmacistInvoicesReadyPage = lazy(() => import('../pages/pharmacist/InvoicesReadyPage'));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
@@ -51,6 +69,11 @@ const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const AuditLogsPage = lazy(() => import('../pages/admin/AuditLogsPage'));
 const NotificationsPage = lazy(() => import('../pages/admin/NotificationsPage'));
 const SettingsPage = lazy(() => import('../pages/admin/SettingsPage'));
+const SpecialtyPage = lazy(() => import('../pages/admin/SpecialtyPage'));
+
+// Home Page
+const HomePage = lazy(() => import('../pages/HomePage'));
+const SpecialtyDetail = lazy(() => import('../pages/SpecialtyDetail'));
 
 // Error Pages
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
@@ -58,6 +81,16 @@ const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage'));
 
 // Route configurations
 export const publicRoutes = [
+  {
+    path: '/',
+    element: HomePage,
+    title: 'Trang chủ',
+  },
+  {
+    path: '/specialty/:specialty',
+    element: SpecialtyDetail,
+    title: 'Chi tiết chuyên khoa',
+  },
   {
     path: '/login',
     element: LoginPage,
@@ -73,6 +106,16 @@ export const publicRoutes = [
     element: ForgotPasswordPage,
     title: 'Quên mật khẩu',
   },
+  {
+    path: '/confirm-registration',
+    element: ConfirmRegistrationPage,
+    title: 'Xác nhận đăng ký',
+  },
+  {
+    path: '/doctors/:id',
+    element: DoctorPublicDetail,
+    title: 'Thông tin bác sĩ',
+  },
 ];
 
 export const patientRoutes = [
@@ -84,7 +127,7 @@ export const patientRoutes = [
   },
   {
     path: '/patient/appointments',
-    element: AppointmentsPage,
+    element: PatientAppointmentsPage,
     title: 'Lịch hẹn',
     role: ROLES.PATIENT,
   },
@@ -98,6 +141,18 @@ export const patientRoutes = [
     path: '/patient/medical-records',
     element: MedicalRecordsPage,
     title: 'Hồ sơ bệnh án',
+    role: ROLES.PATIENT,
+  },
+  {
+    path: '/patient/messages',
+    element: MessagesPage,
+    title: 'Tin nhắn',
+    role: ROLES.PATIENT,
+  },
+  {
+    path: '/patient/faq',
+    element: FAQPage,
+    title: 'Câu hỏi thường gặp',
     role: ROLES.PATIENT,
   },
   {
@@ -118,6 +173,13 @@ export const patientRoutes = [
     title: 'Hóa đơn',
     role: ROLES.PATIENT,
   },
+  {
+    path: '/patient/invoices-detail',
+    element: InvoicesDetailPage,
+    title: 'Quản lý hóa đơn',
+    role: ROLES.PATIENT,
+  },
+  // Appointment history page removed; history is presented inside the appointments page
   {
     path: '/patient/symptom-checker',
     element: AISymptomCheckerPage,
@@ -148,7 +210,7 @@ export const doctorRoutes = [
   {
     path: '/doctor/appointments',
     element: TodayAppointmentsPage,
-    title: 'Lịch hẹn hôm nay',
+    title: 'Lịch hẹn khám bệnh',
     role: ROLES.DOCTOR,
   },
   {
@@ -187,6 +249,12 @@ export const doctorRoutes = [
     title: 'Thông tin cá nhân',
     role: ROLES.DOCTOR,
   },
+  {
+    path: '/doctor/medical-records',
+    element: DoctorMedicalRecordsPage,
+    title: 'Hồ sơ bệnh án',
+    role: ROLES.DOCTOR,
+  },
 ];
 
 export const receptionistRoutes = [
@@ -221,6 +289,12 @@ export const receptionistRoutes = [
     role: ROLES.RECEPTIONIST,
   },
   {
+    path: '/receptionist/prescriptions-inbox',
+    element: PrescriptionsInbox,
+    title: 'Đơn thuốc chờ lập hoá đơn',
+    role: ROLES.RECEPTIONIST,
+  },
+  {
     path: '/receptionist/timeslots',
     element: TimeslotManagementPage,
     title: 'Quản lý khung giờ',
@@ -231,6 +305,48 @@ export const receptionistRoutes = [
     element: DailyReportPage,
     title: 'Báo cáo hàng ngày',
     role: ROLES.RECEPTIONIST,
+  },
+];
+
+export const labTechRoutes = [
+  {
+    path: '/labtech',
+    element: LabTechDashboard,
+    title: 'Trang chủ',
+    role: ROLES.LAB_TECH,
+  },
+  {
+    path: '/labtech/lab-orders',
+    element: LabOrdersPage,
+    title: 'Quản lý chỉ định xét nghiệm',
+    role: ROLES.LAB_TECH,
+  },
+];
+
+export const pharmacistRoutes = [
+  {
+    path: '/pharmacist',
+    element: PharmacistDashboard,
+    title: 'Trang chủ',
+    role: ROLES.PHARMACIST,
+  },
+  {
+    path: '/pharmacist/medicines',
+    element: PharmacistMedicinesPage,
+    title: 'Quản lý thuốc',
+    role: ROLES.PHARMACIST,
+  },
+  {
+    path: '/pharmacist/prescriptions',
+    element: PharmacistPrescriptionsPage,
+    title: 'Quản lý đơn thuốc',
+    role: ROLES.PHARMACIST,
+  },
+  {
+    path: '/pharmacist/invoices-ready',
+    element: PharmacistInvoicesReadyPage,
+    title: 'Hóa đơn sẵn sàng cấp thuốc',
+    role: ROLES.PHARMACIST,
   },
 ];
 
@@ -269,6 +385,12 @@ export const adminRoutes = [
     path: '/admin/rooms',
     element: RoomsPage,
     title: 'Quản lý phòng khám',
+    role: ROLES.ADMIN,
+  },
+  {
+    path: '/admin/specialties',
+    element: SpecialtyPage,
+    title: 'Quản lý chuyên khoa',
     role: ROLES.ADMIN,
   },
   {
@@ -327,6 +449,8 @@ export const protectedRoutes = [
   ...patientRoutes,
   ...doctorRoutes,
   ...receptionistRoutes,
+  ...labTechRoutes,
+  ...pharmacistRoutes,
   ...adminRoutes,
 ];
 
@@ -339,6 +463,10 @@ export const getRoutesByRole = (role) => {
       return doctorRoutes;
     case ROLES.RECEPTIONIST:
       return receptionistRoutes;
+    case ROLES.LAB_TECH:
+      return labTechRoutes;
+    case ROLES.PHARMACIST:
+      return pharmacistRoutes;
     case ROLES.ADMIN:
       return adminRoutes;
     default:
@@ -355,6 +483,10 @@ export const getDefaultPathByRole = (role) => {
       return '/doctor';
     case ROLES.RECEPTIONIST:
       return '/receptionist';
+    case ROLES.LAB_TECH:
+      return '/labtech';
+    case ROLES.PHARMACIST:
+      return '/pharmacist';
     case ROLES.ADMIN:
       return '/admin';
     default:

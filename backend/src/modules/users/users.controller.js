@@ -1,5 +1,6 @@
 const usersService = require('./users.service');
 const { successResponse } = require('../../utils/response');
+const { uploadBuffer } = require('../../utils/cloudinary');
 
 class UsersController {
   async getAllUsers(req, res, next) {
@@ -163,6 +164,70 @@ class UsersController {
       await usersService.deleteUser(parseInt(id));
 
       return successResponse(res, null, 'User deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restoreUser(req, res, next) {
+    try {
+      const { id } = req.params;
+      await usersService.restoreUser(parseInt(id));
+
+      return successResponse(res, null, 'User restored successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadAvatar(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      if (!req.file) {
+        const err = new Error('No file uploaded');
+        err.status = 400;
+        throw err;
+      }
+
+      const fs = require('fs').promises;
+      let buffer;
+      if (req.file.buffer) {
+        buffer = req.file.buffer;
+      } else if (req.file.path) {
+        buffer = await fs.readFile(req.file.path);
+      }
+
+      if (!buffer) {
+        const err = new Error('No file uploaded');
+        err.status = 400;
+        throw err;
+      }
+
+      // Upload to Cloudinary
+      const options = {
+        folder: process.env.CLOUDINARY_AVATAR_FOLDER || 'avatars',
+        resource_type: 'image',
+        public_id: `user_${id}_${Date.now()}`
+      };
+
+      const result = await uploadBuffer(buffer, options);
+
+      // remove local file if any
+      if (req.file.path) {
+        try { await fs.unlink(req.file.path); } catch (e) {}
+      }
+
+      // Save avatar URL to user
+      const updatedUser = await usersService.updateUser(parseInt(id), { avatar_url: result.secure_url });
+
+      if (!updatedUser) {
+        const err = new Error('User not found');
+        err.status = 404;
+        throw err;
+      }
+
+      return successResponse(res, { avatar_url: result.secure_url }, 'Avatar uploaded successfully');
     } catch (error) {
       next(error);
     }

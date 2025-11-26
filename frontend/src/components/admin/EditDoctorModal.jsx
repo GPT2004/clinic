@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { updateUser } from '../../services/userService';
+import { updateDoctor } from '../../services/doctorService';
+import api from '../../services/api';
+import ImageViewer from '../common/ImageViewer';
 
 export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -10,25 +12,75 @@ export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
     specialty: '',
     license_number: '',
   });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [showImageViewer, setShowImageViewer] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [specialties, setSpecialties] = useState([]);
+
+  useEffect(() => {
+    fetchSpecialties();
+  }, []);
 
   useEffect(() => {
     if (doctor) {
+      console.log('Doctor object:', doctor);
       setFormData({
-        full_name: doctor.full_name || doctor.fullName || doctor.name || '',
-        email: doctor.email || '',
-        phone: doctor.phone || '',
+        full_name: doctor.user?.full_name || doctor.full_name || doctor.fullName || doctor.name || '',
+        email: doctor.user?.email || doctor.email || '',
+        phone: doctor.user?.phone || doctor.phone || '',
         specialty: doctor.specialty || '',
         license_number: doctor.license_number || '',
       });
+      // Set avatar preview if available
+      const avatarUrl = doctor.user?.avatar_url || doctor.user?.avatarUrl || doctor.avatar_url || '';
+      setAvatarPreview(avatarUrl);
     }
   }, [doctor]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const openImageViewer = () => {
+    if (avatarPreview) setShowImageViewer(true);
+  };
+
+  const closeImageViewer = () => setShowImageViewer(false);
+
+  const fetchSpecialties = async () => {
+    try {
+      const response = await api.get('/doctors/public/specialties/list');
+      console.log('Specialties response:', response);
+      // Ensure we get an array
+      const specialtiesData = Array.isArray(response) ? response : 
+                             Array.isArray(response?.data) ? response.data :
+                             Array.isArray(response?.specialties) ? response.specialties : [];
+      setSpecialties(specialtiesData);
+    } catch (error) {
+      console.error('Error fetching specialties:', error);
+      setSpecialties([]); // Fallback to empty array
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      const preview = URL.createObjectURL(file);
+      setAvatarPreview(preview);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -38,13 +90,44 @@ export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
       return;
     }
 
+    // Validate phone format (10-11 digits)
+    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
+      setError('Số điện thoại phải có 10-11 chữ số');
+      return;
+    }
+
     try {
       setLoading(true);
-      await updateUser(doctor.id, formData);
+      // Use doctor.id as the doctor ID for update
+      const doctorId = doctor.id;
+      if (!doctorId) {
+        setError('Không tìm thấy ID bác sĩ');
+        return;
+      }
+      console.log('Sending data:', formData);
+      console.log('Doctor ID:', doctorId);
+
+      // If avatarFile is present, construct FormData
+      let payload = formData;
+      if (avatarFile) {
+        const fd = new FormData();
+        Object.keys(formData).forEach(k => {
+          const v = formData[k];
+          if (v !== undefined && v !== null) fd.append(k, v);
+        });
+        // backend expects field name 'avatar_url'
+        fd.append('avatar_url', avatarFile);
+        payload = fd;
+      }
+
+      await updateDoctor(doctorId, payload);
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Cập nhật thất bại');
+      console.error('Update error:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Cập nhật thất bại');
     } finally {
       setLoading(false);
     }
@@ -54,7 +137,7 @@ export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[600px] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-gray-200 bg-white">
           <h2 className="text-xl font-bold text-gray-900">Chỉnh sửa bác sĩ</h2>
@@ -69,10 +152,26 @@ export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="alert alert-error">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
               {error}
             </div>
           )}
+
+          {/* Avatar upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh đại diện</label>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden cursor-pointer" onClick={openImageViewer}>
+                  {avatarPreview ? <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No</div>}
+                </div>
+              <div>
+                <input type="file" accept="image/*" onChange={handleFileChange} />
+              </div>
+                  {showImageViewer && (
+                    <ImageViewer src={avatarPreview} alt={formData.full_name || 'Avatar'} onClose={closeImageViewer} />
+                  )}
+            </div>
+          </div>
 
           {/* Full Name */}
           <div>
@@ -122,16 +221,19 @@ export default function EditDoctorModal({ doctor, onClose, onSuccess }) {
           {/* Specialty */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Chuyên môn
+              Chuyên khoa
             </label>
-            <input
-              type="text"
+            <select
               name="specialty"
               value={formData.specialty}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              placeholder="VD: Nội khoa, Ngoại khoa..."
-            />
+            >
+              <option value="">Chọn chuyên khoa</option>
+              {Array.isArray(specialties) && specialties.map(spec => (
+                <option key={spec.id || spec.name} value={spec.name}>{spec.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* License Number */}

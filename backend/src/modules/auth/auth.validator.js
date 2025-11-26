@@ -1,9 +1,10 @@
 const Joi = require('joi');
 
 const registerSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(6).required(),
   full_name: Joi.string().required(),
+  confirm_password: Joi.any().valid(Joi.ref('password')).required().messages({ 'any.only': 'Mật khẩu xác nhận không khớp' }),
   phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
   dob: Joi.date().max('now').optional(),
   gender: Joi.string().valid('Male', 'Female', 'Other').optional(),
@@ -12,7 +13,7 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().required(),
 });
 

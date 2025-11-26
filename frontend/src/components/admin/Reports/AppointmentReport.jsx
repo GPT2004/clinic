@@ -36,26 +36,33 @@ export default function AppointmentReport() {
   const getDateRangeFromPreset = (preset) => {
     const today = new Date();
     let start, end;
+    
+    const getLocalDate = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
 
     switch (preset) {
       case 'today':
-        start = end = today.toISOString().split('T')[0];
+        start = end = getLocalDate(today);
         break;
       case 'thisWeek':
         const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-        start = weekStart.toISOString().split('T')[0];
-        end = new Date().toISOString().split('T')[0];
+        start = getLocalDate(weekStart);
+        end = getLocalDate(new Date());
         break;
       case 'thisMonth':
-        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        end = new Date().toISOString().split('T')[0];
+        start = getLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        end = getLocalDate(new Date());
         break;
       case 'lastMonth':
-        start = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
-        end = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+        start = getLocalDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+        end = getLocalDate(new Date(today.getFullYear(), today.getMonth(), 0));
         break;
       default:
-        start = end = today.toISOString().split('T')[0];
+        start = end = getLocalDate(today);
     }
 
     return { start, end };

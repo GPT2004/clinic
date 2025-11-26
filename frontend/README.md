@@ -1,7 +1,7 @@
-# Clinic Management System - Frontend
+# Phòng khám đa khoa Management System - Frontend
 
 ## 📋 Mô tả dự án
-Hệ thống quản lý phòng khám đa khoa tư nhân với tích hợp AI, được xây dựng bằng ReactJS.
+Hệ thống quản lý phòng khám đa khoa với tích hợp AI, được xây dựng bằng ReactJS.
 
 ## 🚀 Công nghệ sử dụng
 - **React 18** - UI Library
@@ -24,7 +24,7 @@ Hệ thống quản lý phòng khám đa khoa tư nhân với tích hợp AI, đ
 1. Clone repository
 ```bash
 git clone <repository-url>
-cd clinic-management-frontend
+cd benh-vien-nhi-dong-management-frontend
 ```
 
 2. Cài đặt dependencies

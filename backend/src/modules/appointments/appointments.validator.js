@@ -20,8 +20,14 @@ const cancelAppointmentSchema = Joi.object({
   reason: Joi.string().max(500).optional(),
 });
 
+const rescheduleAppointmentSchema = Joi.object({
+  timeslotId: Joi.number().integer().required(),
+  reason: Joi.string().max(500).optional()
+});
+
 module.exports = {
   createAppointmentSchema,
   updateAppointmentSchema,
   cancelAppointmentSchema,
+  rescheduleAppointmentSchema
 };

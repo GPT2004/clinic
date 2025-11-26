@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const appointmentReminders = require('./appointment-reminders.job');
 const stockAlerts = require('./stock-alerts.job');
 const noShowMarker = require('./no-show-marker.job');
+const cleanupSchedules = require('./cleanup-past-schedules.job');
 const logger = require('../utils/logger');
 
 class Scheduler {
@@ -30,6 +31,23 @@ class Scheduler {
     cron.schedule('0 * * * *', () => {
       logger.info('Running no-show marker job...');
       noShowMarker.run();
+    });
+
+    // Auto-cancel unconfirmed appointments - Every minute
+    cron.schedule('* * * * *', () => {
+      logger.info('Running auto-cancel unconfirmed appointments job...');
+      try {
+        const autoCancel = require('./auto-cancel-unconfirmed.job');
+        autoCancel.run();
+      } catch (err) {
+        logger.error('Failed to run auto-cancel job:', err);
+      }
+    });
+
+    // Cleanup past schedules - Every day at 00:05
+    cron.schedule('5 0 * * *', () => {
+      logger.info('Running cleanup past schedules job...');
+      cleanupSchedules.run();
     });
 
     logger.info('✅ All scheduled jobs initialized');

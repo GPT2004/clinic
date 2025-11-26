@@ -1,71 +1,83 @@
 const express = require('express');
 const router = express.Router();
-const medicalRecordController = require('./medical_records.controller');
+const service = require('./medical_records.service');
+const { authenticate, optionalAuth } = require('../../middlewares/auth.middleware');
 const { validate } = require('../../middlewares/validate.middleware');
-const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorize } = require('../../middlewares/role.middleware');
+const { createMedicalRecordSchema, updateMedicalRecordSchema } = require('./medical_records.validator');
 
-const {
-  createMedicalRecordSchema,
-  updateMedicalRecordSchema,
-} = require('./medical_records.validator');
-const { ROLES } = require('../../config/constants');
+// GET /api/medical-records
+router.get('/', optionalAuth, async (req, res) => {
+  try {
+    const { patientId, doctorId, q, limit = 10, offset = 0, page } = req.query;
+    const pageNum = page ? Number(page) : Math.floor(Number(offset) / Number(limit || 10)) + 1;
+    const filters = {
+      patient_id: patientId ? Number(patientId) : undefined,
+      doctor_id: doctorId ? Number(doctorId) : undefined,
+      q,
+      page: pageNum,
+      limit: Number(limit) || 10,
+    };
+    // pass req.user so service can apply role-based filtering
+    const data = await service.getMedicalRecords(filters, req.user);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
-// Get all medical records (with filters)
-router.get(
-  '/',
-  authenticate,
-  authorize([ROLES.DOCTOR, ROLES.ADMIN, ROLES.PATIENT]),
-  medicalRecordController.getMedicalRecords
-);
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const rec = await service.getMedicalRecordById(req.params.id, req.user);
+    if (!rec) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data: rec });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
 
-// Get medical record by ID
-router.get(
-  '/:id',
-  authenticate,
-  medicalRecordController.getMedicalRecordById
-);
+// Create medical record (authenticated doctors only)
+router.post('/', authenticate, validate(createMedicalRecordSchema), async (req, res) => {
+  try {
+    const payload = req.validatedBody;
+    const created = await service.createMedicalRecord(payload, req.user);
+    res.status(201).json({ success: true, data: created });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
 
-// Get patient medical history
-router.get(
-  '/patient/:patient_id/history',
-  authenticate,
-  medicalRecordController.getPatientMedicalHistory
-);
+router.put('/:id', authenticate, validate(updateMedicalRecordSchema), async (req, res) => {
+  try {
+    const updated = await service.updateMedicalRecord(req.params.id, req.validatedBody, req.user);
+    if (!updated) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
 
-// Create medical record (Doctor only)
-router.post(
-  '/',
-  authenticate,
-  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
-  validate(createMedicalRecordSchema),
-  medicalRecordController.createMedicalRecord
-);
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    await service.deleteMedicalRecord(req.params.id, req.user);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
 
-// Update medical record
-router.put(
-  '/:id',
-  authenticate,
-  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
-  validate(updateMedicalRecordSchema),
-  medicalRecordController.updateMedicalRecord
-);
-
-// Delete medical record (Admin only)
-router.delete(
-  '/:id',
-  authenticate,
-  authorize([ROLES.ADMIN]),
-  medicalRecordController.deleteMedicalRecord
-);
-
-// Upload attachment
-router.post(
-  '/:id/attachments',
-  authenticate,
-  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
-  // multer middleware should be added here
-  medicalRecordController.uploadAttachment
-);
+router.post('/:id/send-to-patient', authenticate, async (req, res) => {
+  try {
+    const result = await service.sendMedicalRecordToPatient(req.params.id, req.user);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
 
 module.exports = router;

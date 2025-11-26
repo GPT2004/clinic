@@ -21,7 +21,7 @@ router.get('/',
   timeslotsController.getAllTimeslots
 );
 
-// Get available timeslots
+// Get available timeslots (must be before /:id routes)
 router.get('/available', 
   authorize(['Admin', 'Receptionist', 'Doctor', 'Patient']), 
   timeslotsController.getAvailableTimeslots

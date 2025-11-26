@@ -21,17 +21,17 @@ export default function DoctorDetailModal({ doctor, onClose }) {
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-500">Tên bác sĩ</label>
-                <p className="text-gray-900 font-medium">{doctor.full_name || doctor.fullName || doctor.name || 'N/A'}</p>
+                <p className="text-gray-900 font-medium">{doctor.user?.full_name || doctor.full_name || doctor.fullName || doctor.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500">Email</label>
-                <p className="text-gray-900">{doctor.email || 'N/A'}</p>
+                <p className="text-gray-900">{doctor.user?.email || doctor.email || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500">Chuyên môn</label>
                 <p className="mt-1">
                   <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                    {doctor.specialty || 'Chưa cập nhật'}
+                    {doctor.specialties && doctor.specialties.length > 0 ? doctor.specialties.join(', ') : doctor.specialty || 'Chưa cập nhật'}
                   </span>
                 </p>
               </div>
@@ -44,7 +44,7 @@ export default function DoctorDetailModal({ doctor, onClose }) {
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-500">Số điện thoại</label>
-                <p className="text-gray-900">{doctor.phone_number || doctor.phoneNumber || 'N/A'}</p>
+                <p className="text-gray-900">{doctor.user?.phone || doctor.phone_number || doctor.phoneNumber || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500">Địa chỉ</label>

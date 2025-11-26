@@ -2,7 +2,26 @@ const { errorResponse } = require('../utils/response');
 
 const validate = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
+    // If a file was uploaded via multer, remove file fields from req.body before validation
+    // so Joi (which expects strings) does not receive file objects.
+    const bodyToValidate = { ...(req.body || {}) };
+    try {
+      if (req.file && req.file.fieldname) {
+        delete bodyToValidate[req.file.fieldname];
+      }
+      if (req.files) {
+        if (Array.isArray(req.files)) {
+          req.files.forEach(f => { if (f && f.fieldname) delete bodyToValidate[f.fieldname]; });
+        } else if (typeof req.files === 'object') {
+          // multer.fields() produces an object where keys are fieldnames
+          Object.keys(req.files).forEach(k => { delete bodyToValidate[k]; });
+        }
+      }
+    } catch (e) {
+      // ignore errors during cleanup
+    }
+
+    const { error, value } = schema.validate(bodyToValidate, {
       abortEarly: false,
       stripUnknown: true,
     });

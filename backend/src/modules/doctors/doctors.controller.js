@@ -1,5 +1,6 @@
 const doctorsService = require('./doctors.service');
 const { successResponse } = require('../../utils/response');
+const { uploadBuffer } = require('../../utils/cloudinary');
 
 class DoctorsController {
   async getAllDoctorsPublic(req, res, next) {
@@ -36,6 +37,34 @@ class DoctorsController {
     }
   }
 
+  async getMyTodayAppointments(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const doctor = await doctorsService.getDoctorByUserId(userId);
+
+      if (!doctor) {
+        return res.status(404).json({ error: 'Doctor not found' });
+      }
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const filters = {
+        startDate: today,
+        endDate: today,
+        status: ['CHECKED_IN', 'IN_PROGRESS'] // Only show appointments that are ready for the doctor
+      };
+
+      const result = await doctorsService.getDoctorAppointments(
+        doctor.id,
+        filters,
+        { page: 1, limit: 100 }
+      );
+
+      return successResponse(res, result, 'Today\'s appointments retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getSpecialties(req, res, next) {
     try {
       const specialties = await doctorsService.getSpecialties();
@@ -60,6 +89,21 @@ class DoctorsController {
       });
 
       return successResponse(res, result, 'Doctors retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDoctorByUserId(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const doctor = await doctorsService.getDoctorByUserId(parseInt(userId));
+
+      if (!doctor) {
+        throw new Error('Doctor not found');
+      }
+
+      return successResponse(res, doctor, 'Doctor retrieved successfully');
     } catch (error) {
       next(error);
     }
@@ -97,6 +141,24 @@ class DoctorsController {
       );
 
       return successResponse(res, result, 'Doctor appointments retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createSchedule(req, res, next) {
+    try {
+      const { id } = req.params;
+      const scheduleData = req.validatedBody;
+      const currentUser = req.user;
+
+      const newSchedule = await doctorsService.createSchedule(
+        parseInt(id),
+        scheduleData,
+        currentUser
+      );
+
+      return successResponse(res, newSchedule, 'Schedule created successfully', 201);
     } catch (error) {
       next(error);
     }
@@ -157,6 +219,30 @@ class DoctorsController {
       const { id } = req.params;
       const updateData = req.validatedBody;
 
+      if (req.file) {
+        const fs = require('fs').promises;
+        let buffer;
+        if (req.file.buffer) {
+          buffer = req.file.buffer;
+        } else if (req.file.path) {
+          buffer = await fs.readFile(req.file.path);
+        }
+
+        if (buffer) {
+          const options = {
+            folder: process.env.CLOUDINARY_AVATAR_FOLDER || 'avatars',
+            resource_type: 'image',
+            public_id: `doctor_${id}_${Date.now()}`
+          };
+          const result = await uploadBuffer(buffer, options);
+          updateData.avatar_url = result.secure_url;
+
+          if (req.file.path) {
+            try { await fs.unlink(req.file.path); } catch (e) {}
+          }
+        }
+      }
+
       const updatedDoctor = await doctorsService.updateDoctor(
         parseInt(id),
         updateData
@@ -176,6 +262,30 @@ class DoctorsController {
     try {
       const userId = req.user.id;
       const updateData = req.validatedBody;
+
+      if (req.file) {
+        const fs = require('fs').promises;
+        let buffer;
+        if (req.file.buffer) {
+          buffer = req.file.buffer;
+        } else if (req.file.path) {
+          buffer = await fs.readFile(req.file.path);
+        }
+
+        if (buffer) {
+          const options = {
+            folder: process.env.CLOUDINARY_AVATAR_FOLDER || 'avatars',
+            resource_type: 'image',
+            public_id: `doctor_user_${userId}_${Date.now()}`
+          };
+          const result = await uploadBuffer(buffer, options);
+          updateData.avatar_url = result.secure_url;
+
+          if (req.file.path) {
+            try { await fs.unlink(req.file.path); } catch (e) {}
+          }
+        }
+      }
 
       const updatedDoctor = await doctorsService.updateDoctorProfile(
         userId,
@@ -213,6 +323,43 @@ class DoctorsController {
       next(error);
     }
   }
+
+  async updateSchedule(req, res, next) {
+    try {
+      const { id: doctorId } = req.params;
+      const { scheduleId } = req.params;
+      const updateData = req.validatedBody;
+
+      const updated = await doctorsService.updateSchedule(parseInt(doctorId), scheduleId, updateData);
+      return successResponse(res, updated, 'Schedule updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteSchedule(req, res, next) {
+    try {
+      const { id: doctorId } = req.params;
+      const { scheduleId } = req.params;
+
+      const result = await doctorsService.deleteSchedule(parseInt(doctorId), scheduleId);
+      return successResponse(res, result, 'Schedule deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rescheduleAppointment(req, res, next) {
+    try {
+      const { appointmentId } = req.params;
+      const { timeslotId } = req.validatedBody;
+
+      const rescheduled = await doctorsService.rescheduleAppointment(appointmentId, timeslotId);
+      return successResponse(res, rescheduled, 'Appointment rescheduled successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
-module.exports = new DoctorsController();
+module.exports = DoctorsController;

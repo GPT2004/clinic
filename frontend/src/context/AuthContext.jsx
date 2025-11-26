@@ -28,13 +28,13 @@
     // === HÀM CHUẨN HÓA ROLE ===
     const normalizeRole = (u) => {
       if (!u || !u.role) {
-        u.role = 'patient'; // fallback
+        u.role = 'Patient'; // fallback
         return u;
       }
       if (typeof u.role === 'object') {
-        u.role = u.role.name || u.role.role || 'patient';
+        u.role = u.role.name || u.role.role || 'Patient';
       }
-      // Nếu là string → giữ nguyên
+      // Keep role as-is, don't lowercase here
       return u;
     };
 
@@ -46,19 +46,20 @@
           const savedUser = getUserData();
 
           if (token && savedUser) {
-            try {
-              const response = await authService.getProfile();
-              let freshUser = response.data;
-              freshUser = normalizeRole(freshUser); // CHUẨN HÓA ROLE
+                try {
+                  const response = await authService.getProfile();
+                  // unwrap common response shapes: { data: { ...user } } or { data: { user: {...} } }
+                  let freshUser = response?.data?.data || response?.data?.user || response?.data || null;
+                  freshUser = normalizeRole(freshUser); // CHUẨN HÓA ROLE
 
-              setUser(freshUser);
-              setUserData(freshUser);
-              setIsAuthenticated(true);
-            } catch (err) {
-              clearAuthData();
-              setUser(null);
-              setIsAuthenticated(false);
-            }
+                  setUser(freshUser);
+                  setUserData(freshUser);
+                  setIsAuthenticated(true);
+                } catch (err) {
+                  clearAuthData();
+                  setUser(null);
+                  setIsAuthenticated(false);
+                }
           }
         } catch (err) {
           console.error('Auth initialization error:', err);
@@ -101,8 +102,9 @@
 
       // CHUẨN HÓA ROLE THÀNH STRING
       if (userData.role && typeof userData.role === 'object') {
-        userData.role = userData.role.name || 'patient';
+        userData.role = userData.role.name || 'Patient';
       }
+      // Keep original role casing, backend will normalize
 
       // LƯU VÀO STORAGE
       if (token) setAuthToken(token);
@@ -169,7 +171,7 @@
     const updateProfile = useCallback(async () => {
       try {
         const response = await authService.getProfile();
-        let updatedUser = response.data;
+        let updatedUser = response?.data?.data || response?.data?.user || response?.data || null;
         updatedUser = normalizeRole(updatedUser);
 
         setUserData(updatedUser);
@@ -185,7 +187,7 @@
     const refreshUser = useCallback(async () => {
       try {
         const response = await authService.getProfile();
-        let freshUser = response.data;
+        let freshUser = response?.data?.data || response?.data?.user || response?.data || null;
         freshUser = normalizeRole(freshUser);
 
         setUserData(freshUser);

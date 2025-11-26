@@ -53,6 +53,25 @@ class MedicineController {
     }
   }
 
+  async restoreMedicine(req, res, next) {
+    try {
+      const result = await medicineService.restoreMedicine(req.params.id);
+      return successResponse(res, result, 'Medicine restored successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get total stock for a medicine
+  async getStockByMedicineId(req, res, next) {
+    try {
+      const medicine = await medicineService.getMedicineById(req.params.id);
+      return successResponse(res, { total_stock: medicine.total_stock }, 'Stock retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // Stocks
   async createStock(req, res, next) {
     try {
@@ -129,6 +148,24 @@ class MedicineController {
       const { days = 30 } = req.query;
       const expiring = await medicineService.getExpiringMedicines(parseInt(days));
       return successResponse(res, expiring, 'Expiring medicines retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async importMedicines(req, res, next) {
+    try {
+      const { medicines } = req.validatedBody;
+      
+      if (!Array.isArray(medicines) || medicines.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh sách thuốc không hợp lệ hoặc trống'
+        });
+      }
+      
+      const result = await medicineService.importMedicines(medicines);
+      return successResponse(res, result, 'Medicines imported successfully');
     } catch (error) {
       next(error);
     }

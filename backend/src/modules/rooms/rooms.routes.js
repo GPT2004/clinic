@@ -15,6 +15,12 @@ router.get('/',
   roomsController.getAllRooms
 );
 
+// Get deleted rooms (trash bin)
+router.get('/deleted', 
+  authorize(['Admin']), 
+  roomsController.getDeletedRooms
+);
+
 // Get available rooms
 router.get('/available', 
   authorize(['Admin', 'Receptionist', 'Doctor']), 
@@ -58,6 +64,12 @@ router.patch('/:id/status',
 router.delete('/:id', 
   authorize(['Admin']), 
   roomsController.deleteRoom
+);
+
+// Restore room (Admin only)
+router.patch('/:id/restore', 
+  authorize(['Admin']), 
+  roomsController.restoreRoom
 );
 
 module.exports = router;

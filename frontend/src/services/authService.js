@@ -50,6 +50,10 @@ export const authService = {
     return await api.post('/auth/forgot-password', { email });
   },
 
+  checkEmail: async (email) => {
+    return await api.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
+  },
+
   // Reset password (if backend supports)
   resetPassword: async (token, newPassword) => {
     return await api.post('/auth/reset-password', { token, new_password: newPassword });
@@ -66,5 +70,6 @@ export const changePassword = authService.changePassword;
 export const refreshToken = authService.refreshToken;
 export const forgotPassword = authService.forgotPassword;
 export const resetPassword = authService.resetPassword;
+export const checkEmail = authService.checkEmail;
 
 export default authService;

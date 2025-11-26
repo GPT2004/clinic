@@ -1,4 +1,5 @@
 const invoiceService = require('./invoices.service');
+const PDFService = require('../../utils/pdf');
 const { successResponse } = require('../../utils/response');
 
 class InvoiceController {
@@ -28,6 +29,18 @@ class InvoiceController {
     }
   }
 
+  async getInvoicesByPatient(req, res, next) {
+    try {
+      const result = await invoiceService.getInvoices({
+        page: 1,
+        limit: 100,
+      }, req.user);
+      return successResponse(res, result, 'Patient invoices retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getInvoiceById(req, res, next) {
     try {
       const invoice = await invoiceService.getInvoiceById(req.params.id, req.user);
@@ -49,8 +62,33 @@ class InvoiceController {
   async payInvoice(req, res, next) {
     try {
       const { payment_method, paid_amount } = req.body;
-      const invoice = await invoiceService.payInvoice(req.params.id, payment_method, paid_amount);
-      return successResponse(res, invoice, 'Invoice paid successfully');
+      const result = await invoiceService.payInvoice(req.params.id, payment_method, paid_amount);
+      // result: { invoice, change }
+      return successResponse(res, result, 'Invoice paid successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createFromPrescription(req, res, next) {
+    try {
+      const { prescription_id } = req.body;
+      const invoice = await invoiceService.createInvoiceFromPrescription(prescription_id, req.user?.id);
+      return successResponse(res, invoice, 'Invoice created from prescription', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async downloadInvoicePDF(req, res, next) {
+    try {
+      const invoice = await invoiceService.getInvoiceById(req.params.id, req.user);
+      const uploadsDir = require('path').join(__dirname, '../../../uploads/invoices');
+      const fs = require('fs');
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+      const outputPath = require('path').join(uploadsDir, `invoice-${invoice.id}.pdf`);
+      await PDFService.generateInvoicePDF(invoice, outputPath);
+      return res.download(outputPath);
     } catch (error) {
       next(error);
     }

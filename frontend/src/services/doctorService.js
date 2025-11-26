@@ -18,6 +18,10 @@ export const doctorService = {
   },
 
   // Get all doctors (Admin/Receptionist/Doctor)
+  getDoctors: async (params = {}) => {
+    return await api.get('/doctors', { params });
+  },
+
   getAllDoctors: async (params = {}) => {
     return await api.get('/doctors', { params });
   },
@@ -37,9 +41,29 @@ export const doctorService = {
     return await api.get(`/doctors/${id}/schedules`, { params });
   },
 
+  // Create schedule for doctor
+  createDoctorSchedule: async (id, data = {}) => {
+    return await api.post(`/doctors/${id}/schedules`, data);
+  },
+
+  // Update schedule for doctor
+  updateDoctorSchedule: async (id, scheduleId, data = {}) => {
+    return await api.put(`/doctors/${id}/schedules/${scheduleId}`, data);
+  },
+
+  // Delete schedule for doctor
+  deleteDoctorSchedule: async (id, scheduleId) => {
+    return await api.delete(`/doctors/${id}/schedules/${scheduleId}`);
+  },
+
   // Get doctor patients
   getDoctorPatients: async (id) => {
     return await api.get(`/doctors/${id}/patients`);
+  },
+
+  // Get doctor by user id (filter) - backend may support querying by user_id via params
+  getDoctorByUser: async (userId) => {
+    return await api.get(`/doctors/user/${userId}`);
   },
 
   // Get doctor stats
@@ -54,11 +78,18 @@ export const doctorService = {
 
   // Update doctor (Admin)
   updateDoctor: async (id, data) => {
+    // If data is FormData (contains file), send as multipart
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      return await api.put(`/doctors/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+    }
     return await api.put(`/doctors/${id}`, data);
   },
 
   // Update own profile (Doctor)
   updateOwnProfile: async (data) => {
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      return await api.put('/doctors/me/profile', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+    }
     return await api.put('/doctors/me/profile', data);
   },
 
@@ -87,6 +118,9 @@ export const getAllDoctors = doctorService.getAllDoctors;
 export const getDoctorById = doctorService.getDoctorById;
 export const getDoctorAppointments = doctorService.getDoctorAppointments;
 export const getDoctorSchedules = doctorService.getDoctorSchedules;
+export const createDoctorSchedule = doctorService.createDoctorSchedule;
+export const updateDoctorSchedule = doctorService.updateDoctorSchedule;
+export const deleteDoctorSchedule = doctorService.deleteDoctorSchedule;
 export const getDoctorPatients = doctorService.getDoctorPatients;
 export const getDoctorStats = doctorService.getDoctorStats;
 export const createDoctor = doctorService.createDoctor;
@@ -95,5 +129,7 @@ export const updateOwnProfile = doctorService.updateOwnProfile;
 export const deleteDoctor = doctorService.deleteDoctor;
 export const toggleDoctorStatus = doctorService.toggleDoctorStatus;
 export const getTodayAppointments = doctorService.getTodayAppointments;
+
+export const getDoctorByUser = doctorService.getDoctorByUser;
 
 export default doctorService;

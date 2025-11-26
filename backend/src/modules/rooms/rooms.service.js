@@ -16,6 +16,8 @@ class RoomsService {
         };
       }
 
+      where.deleted_at = null;
+
       const [total, rooms] = await Promise.all([
         prisma.rooms.count({ where }),
         prisma.rooms.findMany({
@@ -51,7 +53,7 @@ class RoomsService {
   async getRoomById(id) {
     try {
       const room = await prisma.rooms.findUnique({
-        where: { id },
+        where: { id, deleted_at: null },
         include: {
           schedules: {
             where: {
@@ -101,7 +103,10 @@ class RoomsService {
 
       // Get all rooms
       const allRooms = await prisma.rooms.findMany({
-        where,
+        where: {
+          ...where,
+          deleted_at: null
+        },
         orderBy: {
           name: 'asc'
         }
@@ -224,7 +229,7 @@ class RoomsService {
   async updateRoom(id, updateData) {
     try {
       const room = await prisma.rooms.findUnique({
-        where: { id }
+        where: { id, deleted_at: null }
       });
 
       if (!room) {
@@ -262,10 +267,10 @@ class RoomsService {
     }
   }
 
-  async deleteRoom(id) {
+  async deleteRoom(id, userId) {
     try {
       const room = await prisma.rooms.findUnique({
-        where: { id },
+        where: { id, deleted_at: null },
         include: {
           _count: {
             select: {
@@ -293,8 +298,24 @@ class RoomsService {
         throw new Error('Cannot delete room with future schedules');
       }
 
-      await prisma.rooms.delete({
-        where: { id }
+      // Soft delete
+      await prisma.rooms.update({
+        where: { id },
+        data: {
+          deleted_at: new Date()
+        }
+      });
+
+      // Log audit
+      await prisma.audit_logs.create({
+        data: {
+          user_id: userId,
+          action: 'DELETE_ROOM',
+          meta: {
+            room_id: id,
+            room_name: room.name
+          }
+        }
       });
     } catch (error) {
       console.error('Error in deleteRoom:', error);
@@ -305,7 +326,7 @@ class RoomsService {
   async updateRoomStatus(id, status) {
     try {
       const room = await prisma.rooms.findUnique({
-        where: { id }
+        where: { id, deleted_at: null }
       });
 
       if (!room) {
@@ -324,6 +345,87 @@ class RoomsService {
       return updatedRoom;
     } catch (error) {
       console.error('Error in updateRoomStatus:', error);
+      throw error;
+    }
+  }
+
+  async restoreRoom(id, userId) {
+    try {
+      const room = await prisma.rooms.findUnique({
+        where: { id }
+      });
+
+      if (!room) {
+        throw new Error('Room not found');
+      }
+
+      if (!room.deleted_at) {
+        throw new Error('Room is not deleted');
+      }
+
+      await prisma.rooms.update({
+        where: { id },
+        data: {
+          deleted_at: null
+        }
+      });
+
+      // Log audit
+      await prisma.audit_logs.create({
+        data: {
+          user_id: userId,
+          action: 'RESTORE_ROOM',
+          meta: {
+            room_id: id,
+            room_name: room.name
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error in restoreRoom:', error);
+      throw error;
+    }
+  }
+
+  async getDeletedRooms(filters = {}, pagination = { page: 1, limit: 20 }) {
+    try {
+      const { page, limit } = pagination;
+      const skip = (page - 1) * limit;
+
+      const where = {
+        deleted_at: {
+          not: null
+        }
+      };
+
+      if (filters.name) {
+        where.name = {
+          contains: filters.name,
+          mode: 'insensitive'
+        };
+      }
+
+      const [total, rooms] = await Promise.all([
+        prisma.rooms.count({ where }),
+        prisma.rooms.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: {
+            deleted_at: 'desc'
+          }
+        })
+      ]);
+
+      return {
+        rooms,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      };
+    } catch (error) {
+      console.error('Error in getDeletedRooms:', error);
       throw error;
     }
   }

@@ -1,20 +1,61 @@
 ﻿// src/components/receptionist/AppointmentManager.jsx
 import React, { useState } from 'react';
-import { Calendar, Clock, User, CheckCircle, XCircle, Search } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, XCircle, Search, ArrowUpDown } from 'lucide-react';
 import { mockAppointments, mockPatients } from './mockData';
 
 const AppointmentManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('created'); // 'name' | 'status' | 'created'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' | 'desc'
 
-  const appointments = mockAppointments.map(appt => {
-    const patient = mockPatients.find(p => p.id === appt.patientId);
-    return { ...appt, patient };
-  }).filter(appt => {
-    const matchesSearch = appt.patient.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'ALL' || appt.status === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const appointments = mockAppointments
+    .map(appt => {
+      const patient = mockPatients.find(p => p.id === appt.patientId);
+      return { ...appt, patient };
+    })
+    .filter(appt => {
+      const patientName = (appt.patient?.user?.full_name || appt.patientName || '').toLowerCase();
+      const matchesSearch = patientName.includes(searchTerm.toLowerCase());
+      const matchesFilter = filter === 'ALL' || appt.status === filter;
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      // Determine values for comparison
+      let valA;
+      let valB;
+      switch (sortBy) {
+        case 'name':
+          valA = (a.patient?.user?.full_name || a.patientName || '').toLowerCase();
+          valB = (b.patient?.user?.full_name || b.patientName || '').toLowerCase();
+          break;
+        case 'status':
+          valA = a.status || '';
+          valB = b.status || '';
+          break;
+        case 'created':
+        default:
+          // Use id as proxy for creation time (higher id = newer)
+          valA = a.id;
+          valB = b.id;
+          break;
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const handleSortChange = (key) => {
+    if (sortBy === key) {
+      // toggle order
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      // default order per key
+      setSortOrder(key === 'created' ? 'desc' : 'asc');
+    }
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -35,7 +76,7 @@ const AppointmentManager = () => {
         </h3>
       </div>
       <div className="p-6 space-y-4">
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="flex-1 relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -56,6 +97,38 @@ const AppointmentManager = () => {
             <option value="CONFIRMED">Đã xác nhận</option>
             <option value="CHECKED_IN">Đã check-in</option>
           </select>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleSortChange('name')}
+              className={`px-3 py-2 text-sm rounded-lg border flex items-center gap-1 transition ${sortBy === 'name' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              <ArrowUpDown className="w-4 h-4" /> Tên
+              {sortBy === 'name' && (
+                <span className="text-xs font-medium">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSortChange('status')}
+              className={`px-3 py-2 text-sm rounded-lg border flex items-center gap-1 transition ${sortBy === 'status' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              <ArrowUpDown className="w-4 h-4" /> Trạng thái
+              {sortBy === 'status' && (
+                <span className="text-xs font-medium">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSortChange('created')}
+              className={`px-3 py-2 text-sm rounded-lg border flex items-center gap-1 transition ${sortBy === 'created' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              <ArrowUpDown className="w-4 h-4" /> Thời gian tạo
+              {sortBy === 'created' && (
+                <span className="text-xs font-medium">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </button>
+          </div>
         </div>
         <div className="space-y-3">
           {appointments.map(appt => (
@@ -66,7 +139,7 @@ const AppointmentManager = () => {
                     <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{appt.patient.name}</p>
+                    <p className="font-medium text-gray-900">{appt.patient?.user?.full_name || appt.patientName}</p>
                     <p className="text-sm text-gray-600">{appt.reason}</p>
                   </div>
                 </div>

@@ -19,7 +19,15 @@ const updatePrescriptionSchema = Joi.object({
   items: Joi.array().items(prescriptionItemSchema).min(1).optional(),
 });
 
+const dispensePrescriptionSchema = Joi.object({
+  items: Joi.array().items(Joi.object({
+    medicine_id: Joi.number().integer().required(),
+    dispense_quantity: Joi.number().integer().min(0).required(),
+  })).min(1).required(),
+});
+
 module.exports = {
   createPrescriptionSchema,
   updatePrescriptionSchema,
+  dispensePrescriptionSchema,
 };

@@ -8,9 +8,31 @@ const { authorize } = require('../../middlewares/role.middleware');
 const { 
   createAppointmentSchema, 
   updateAppointmentSchema,
-  cancelAppointmentSchema 
+  cancelAppointmentSchema,
+  rescheduleAppointmentSchema
 } = require('./appointments.validator');
 const { ROLES } = require('../../config/constants');
+
+// Get my appointments (current logged-in patient)
+router.get(
+  '/me',
+  authenticate,
+  appointmentController.getMyAppointments
+);
+
+// Get all appointments for patient (no pagination)
+router.get(
+  '/all/all-appointments',
+  authenticate,
+  appointmentController.getAllAppointmentsByPatient
+);
+
+// Get appointment history (past appointments for current patient)
+router.get(
+  '/history/list',
+  authenticate,
+  appointmentController.getAppointmentHistory
+);
 
 // Get all appointments (with filters)
 router.get(
@@ -90,6 +112,36 @@ router.patch(
   authenticate,
   validate(cancelAppointmentSchema),
   appointmentController.cancelAppointment
+);
+
+// Patient confirms they will attend (notify reception)
+router.patch(
+  '/:id/patient-confirm',
+  authenticate,
+  authorize([ROLES.PATIENT]),
+  appointmentController.patientConfirmAppointment
+);
+
+// Public confirm via token (from email link)
+router.get(
+  '/:id/confirm',
+  appointmentController.confirmByToken
+);
+
+// Reschedule appointment
+router.patch(
+  '/:id/reschedule',
+  authenticate,
+  validate(rescheduleAppointmentSchema),
+  appointmentController.rescheduleAppointment
+);
+
+// Delete appointment (permanent)
+router.delete(
+  '/:id',
+  authenticate,
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  appointmentController.deleteAppointment
 );
 
 module.exports = router;

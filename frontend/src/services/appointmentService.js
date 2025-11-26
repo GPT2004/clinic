@@ -51,16 +51,36 @@ export const appointmentService = {
   cancelAppointment: async (id, reason) => {
     return await api.patch(`/appointments/${id}/cancel`, { reason });
   },
+  // Delete appointment (permanent)
+  deleteAppointment: async (id) => {
+    return await api.delete(`/appointments/${id}`);
+  },
+
+  // Get all appointments (no pagination, no status filter)
+  getAllAppointmentsByPatient: async () => {
+    return await api.get('/appointments/all/all-appointments');
+  },
+
+  // Get appointment history (past appointments for patient)
+  getAppointmentHistory: async (params = {}) => {
+    return await api.get('/appointments/history/list', { params });
+  },
 };
 
 // Named exports & convenient wrappers
 export const getAllAppointments = appointmentService.getAppointments;
 
-// getAppointmentsByPatient: wrapper calling getAppointments with patientId param.
-// If your backend supports a dedicated endpoint like /patients/{id}/appointments, you can replace this wrapper.
-export const getAppointmentsByPatient = async (patientId, params = {}) => {
-  const p = { ...(params || {}), patientId };
-  return await appointmentService.getAppointments(p);
+// getAppointmentsByPatient: Get current logged-in patient's appointments
+export const getAppointmentsByPatient = async (params = {}) => {
+  try {
+    return await api.get('/appointments/me', { params });
+  } catch (error) {
+    // Fallback to /appointments with patientId if /appointments/me doesn't work
+    // eslint-disable-next-line no-console
+    console.error('Failed to get /appointments/me, trying alternative endpoint:', error);
+    const p = { ...(params || {}), current: true };
+    return await appointmentService.getAppointments(p);
+  }
 };
 
 export const getAppointmentById = appointmentService.getAppointmentById;
@@ -72,5 +92,8 @@ export const startAppointment = appointmentService.startAppointment;
 export const completeAppointment = appointmentService.completeAppointment;
 export const markNoShow = appointmentService.markNoShow;
 export const cancelAppointment = appointmentService.cancelAppointment;
+export const deleteAppointment = appointmentService.deleteAppointment;
+export const getAppointmentHistory = appointmentService.getAppointmentHistory;
+export const getAllAppointmentsByPatient = appointmentService.getAllAppointmentsByPatient;
 
 export default appointmentService;

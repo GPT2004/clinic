@@ -54,8 +54,20 @@ class TimeslotsService {
         })
       ]);
 
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        const str = String(timeVal);
+        const match = str.match(/^(\d{2}):(\d{2})/);
+        return match ? `${match[1]}:${match[2]}` : str.substring(0, 5);
+      };
+
       return {
-        timeslots,
+        ...updatedTimeslot,
+        start_time: formatTimeField(updatedTimeslot.start_time),
+        end_time: formatTimeField(updatedTimeslot.end_time)
+      };
+      return {
+        timeslots: formattedTimeslots,
         total,
         page,
         limit,
@@ -99,7 +111,21 @@ class TimeslotsService {
         }
       });
 
-      return timeslot;
+      if (!timeslot) return null;
+
+      // Helper function to format TIME fields to HH:MM string
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        const str = String(timeVal);
+        const match = str.match(/^(\d{2}):(\d{2})/);
+        return match ? `${match[1]}:${match[2]}` : str.substring(0, 5);
+      };
+
+      return {
+        ...timeslot,
+        start_time: formatTimeField(timeslot.start_time),
+        end_time: formatTimeField(timeslot.end_time)
+      };
     } catch (error) {
       console.error('Error in getTimeslotById:', error);
       throw error;
@@ -108,28 +134,52 @@ class TimeslotsService {
 
   async getAvailableTimeslots(doctorId, date) {
     try {
-      const targetDate = new Date(date);
+      // Compare by DATE string to avoid timezone/timestamp conversion issues
+      // Expect `date` as 'YYYY-MM-DD'
+      const parts = String(date).split('-').map(Number);
+      if (parts.length !== 3) {
+        throw new Error('Invalid date');
+      }
+      const [year, month, day] = parts;
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 
-      const timeslots = await prisma.timeslots.findMany({
-        where: {
-          doctor_id: doctorId,
-          date: targetDate,
-          is_active: true,
-          booked_count: {
-            lt: prisma.timeslots.fields.max_patients
-          }
-        },
-        orderBy: {
-          start_time: 'asc'
-        }
-      });
+      console.log(`🔍 [getAvailableTimeslots] Query: doctor_id=${doctorId}, date=${dateStr}`);
 
+      // Use raw query to get TIME fields as text (HH:MM:SS) and compare date using ::date
+      const timeslots = await prisma.$queryRaw`
+        SELECT 
+          id,
+          doctor_id,
+          date,
+          to_char(start_time, 'HH24:MI:SS') as start_time,
+          to_char(end_time, 'HH24:MI:SS') as end_time,
+          max_patients,
+          booked_count,
+          is_active,
+          created_at,
+          updated_at
+        FROM timeslots
+        WHERE doctor_id = ${doctorId}
+          AND date = ${dateStr}::date
+          AND is_active = true
+          AND booked_count < max_patients
+        ORDER BY start_time ASC
+      `;
+
+      console.log(`✅ [getAvailableTimeslots] Found ${timeslots.length} slots`);
+      if (timeslots.length === 0) {
+        console.log(`⚠️  [getAvailableTimeslots] No slots found for doctor_id=${doctorId}, date=${dateStr}`);
+      }
+
+      // Return with HH:MM format (just extract first 5 chars)
       return timeslots.map(slot => ({
         ...slot,
+        start_time: String(slot.start_time).substring(0, 5),
+        end_time: String(slot.end_time).substring(0, 5),
         available_slots: slot.max_patients - slot.booked_count
       }));
     } catch (error) {
-      console.error('Error in getAvailableTimeslots:', error);
+      console.error('❌ Error in getAvailableTimeslots:', error);
       throw error;
     }
   }
@@ -153,7 +203,38 @@ class TimeslotsService {
         ]
       });
 
-      return timeslots;
+      // Helper function to format TIME fields to HH:MM string
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        if (timeVal instanceof Date) {
+          // Treat Date as UTC time to avoid server-local timezone shifts
+          const h = String(timeVal.getUTCHours()).padStart(2, '0');
+          const m = String(timeVal.getUTCMinutes()).padStart(2, '0');
+          return `${h}:${m}`;
+        }
+        if (typeof timeVal === 'string') {
+          const match = timeVal.match(/(\d{2}):(\d{2})/);
+          return match ? `${match[1]}:${match[2]}` : timeVal;
+        }
+        return String(timeVal);
+      };
+      // Helper to format date (YYYY-MM-DD) from Date or string
+      const formatDateKey = (d) => {
+        if (!d) return null;
+        const dateObj = d instanceof Date ? d : new Date(d);
+        if (isNaN(dateObj.getTime())) return null;
+        const y = dateObj.getUTCFullYear();
+        const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      return timeslots.map(slot => ({
+        ...slot,
+        date: formatDateKey(slot.date),
+        start_time: formatTimeField(slot.start_time),
+        end_time: formatTimeField(slot.end_time)
+      }));
     } catch (error) {
       console.error('Error in getDoctorTimeslots:', error);
       throw error;
@@ -222,7 +303,18 @@ class TimeslotsService {
         }
       });
 
-      return timeslot;
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        const str = String(timeVal);
+        const match = str.match(/^(\d{2}):(\d{2})/);
+        return match ? `${match[1]}:${match[2]}` : str.substring(0, 5);
+      };
+
+      return {
+        ...timeslot,
+        start_time: formatTimeField(timeslot.start_time),
+        end_time: formatTimeField(timeslot.end_time)
+      };
     } catch (error) {
       console.error('Error in createTimeslot:', error);
       throw error;
@@ -315,7 +407,26 @@ class TimeslotsService {
         }
       });
 
-      return updatedTimeslot;
+      // Helper function to format TIME fields to HH:MM string
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        if (timeVal instanceof Date) {
+          const h = String(timeVal.getHours()).padStart(2, '0');
+          const m = String(timeVal.getMinutes()).padStart(2, '0');
+          return `${h}:${m}`;
+        }
+        if (typeof timeVal === 'string') {
+          const match = timeVal.match(/(\d{2}):(\d{2})/);
+          return match ? `${match[1]}:${match[2]}` : timeVal;
+        }
+        return String(timeVal);
+      };
+
+      return {
+        ...updatedTimeslot,
+        start_time: formatTimeField(updatedTimeslot.start_time),
+        end_time: formatTimeField(updatedTimeslot.end_time)
+      };
     } catch (error) {
       console.error('Error in updateTimeslot:', error);
       throw error;
@@ -364,7 +475,26 @@ class TimeslotsService {
         }
       });
 
-      return updatedTimeslot;
+      // Helper function to format TIME fields to HH:MM string
+      const formatTimeField = (timeVal) => {
+        if (!timeVal) return null;
+        if (timeVal instanceof Date) {
+          const h = String(timeVal.getHours()).padStart(2, '0');
+          const m = String(timeVal.getMinutes()).padStart(2, '0');
+          return `${h}:${m}`;
+        }
+        if (typeof timeVal === 'string') {
+          const match = timeVal.match(/(\d{2}):(\d{2})/);
+          return match ? `${match[1]}:${match[2]}` : timeVal;
+        }
+        return String(timeVal);
+      };
+
+      return {
+        ...updatedTimeslot,
+        start_time: formatTimeField(updatedTimeslot.start_time),
+        end_time: formatTimeField(updatedTimeslot.end_time)
+      };
     } catch (error) {
       console.error('Error in toggleTimeslotStatus:', error);
       throw error;

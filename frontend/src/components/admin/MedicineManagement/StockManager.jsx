@@ -316,7 +316,7 @@ function AddStockModal({ medicine, onClose, onSuccess }) {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose}>
+    <Modal isOpen={!!medicine} onClose={onClose}>
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <h3 className="text-lg font-semibold mb-4">
           Nhập kho: {medicine?.name}

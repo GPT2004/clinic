@@ -4,8 +4,10 @@ const patientsController = require('./patients.controller');
 const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
+const { uploadSingle, handleUploadError } = require('../../middlewares/upload.middleware');
 
-const { createPatientSchema, updatePatientSchema, updateProfileSchema } = require('./patients.validator');
+const { createPatientSchema, updatePatientSchema, updateProfileSchema, createDependentPatientSchema, createDependentPatientExtendedSchema, updateProfileExtendedSchema } = require('./patients.validator');
+const { createPatientQuickSchema } = require('./patients.validator');
 
 router.use(authenticate);
 
@@ -30,11 +32,32 @@ router.get('/:id/invoices', authorize(['Admin', 'Receptionist', 'Patient']), pat
 // Get my profile (Patient)
 router.get('/me/profile', authorize(['Patient']), patientsController.getMyProfile);
 
-// Update my profile (Patient)
-router.put('/me/profile', authorize(['Patient']), validate(updateProfileSchema), patientsController.updateMyProfile);
+// Debug: get shared medical records for current patient user
+router.get('/me/shared-medical-records', authorize(['Patient']), patientsController.getMySharedMedicalRecords);
+
+// Update my profile (Patient) - allow extended profile fields (occupation, id_type, etc.)
+router.put('/me/profile', authorize(['Patient']), uploadSingle('avatar_url'), validate(updateProfileExtendedSchema), patientsController.updateMyProfile);
+
+// Get my patients (own profiles and dependents)
+router.get('/me/list', authorize(['Patient']), patientsController.getMyPatients);
+
+// Delete my dependent profile (owner)
+router.delete('/me/:id', authorize(['Patient']), patientsController.deleteMyDependent);
+
+// Delete my own profile (Patient) - deletes user and patient record
+router.delete('/me/profile', authorize(['Patient']), patientsController.deleteMyProfile);
+
+// Create dependent patient profile for current patient user
+router.post('/me', authorize(['Patient']), validate(createDependentPatientExtendedSchema), patientsController.createDependentPatient);
+
+// Update a dependent or owned patient profile (Patient owner)
+router.put('/me/:id', authorize(['Patient']), uploadSingle('avatar_url'), validate(updateProfileExtendedSchema), patientsController.updateDependentProfile);
 
 // Create patient (Admin, Receptionist)
 router.post('/', authorize(['Admin', 'Receptionist']), validate(createPatientSchema), patientsController.createPatient);
+
+// Quick create patient without linked user (Receptionist only)
+router.post('/quick', authorize(['Admin', 'Receptionist']), validate(createPatientQuickSchema), patientsController.createPatientQuick);
 
 // Update patient (Admin, Receptionist)
 router.put('/:id', authorize(['Admin', 'Receptionist']), validate(updatePatientSchema), patientsController.updatePatient);

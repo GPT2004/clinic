@@ -4,7 +4,7 @@ import { Calendar, CheckCircle, Users, TrendingUp } from 'lucide-react';
 
 const DoctorStats = () => {
   const stats = [
-    { label: 'Lịch hẹn hôm nay', value: 12, icon: Calendar, color: 'bg-blue-500', change: '+2 so với hôm qua' },
+    { label: 'Lịch hẹn khám bệnh', value: 12, icon: Calendar, color: 'bg-blue-500', change: '+2 so với hôm qua' },
     { label: 'Đã hoàn thành', value: 8, icon: CheckCircle, color: 'bg-green-500', change: '67% tỷ lệ hoàn thành' },
     { label: 'Tổng bệnh nhân', value: 156, icon: Users, color: 'bg-purple-500', change: '+5 tuần này' },
     { label: 'Đánh giá TB', value: 4.8, icon: TrendingUp, color: 'bg-yellow-500', change: '98% hài lòng' }

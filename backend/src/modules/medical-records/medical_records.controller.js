@@ -85,6 +85,15 @@ class MedicalRecordController {
       next(error);
     }
   }
+
+  async sendToPatient(req, res, next) {
+    try {
+      const result = await medicalRecordService.sendMedicalRecordToPatient(req.params.id, req.user);
+      return successResponse(res, result, 'Medical record sent to patient');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
-module.exports = new MedicalRecordController();
+module.exports = MedicalRecordController;

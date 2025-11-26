@@ -1,4 +1,5 @@
 const prisma = require('../../config/database');
+const auditLogsService = require('../audit-logs/audit-logs.service');
 
 class MedicineService {
   // Medicine CRUD
@@ -24,6 +25,9 @@ class MedicineService {
       },
     });
 
+    // Audit (fire-and-forget)
+    try { auditLogsService.logAction(null, 'medicine.create', { medicine_id: medicine.id, name: medicine.name }); } catch (e) {}
+
     return medicine;
   }
 
@@ -32,6 +36,11 @@ class MedicineService {
     const skip = (page - 1) * limit;
 
     const where = {};
+
+    // By default exclude soft-deleted records
+    if (!filters || !filters.include_deleted) {
+      where.deleted_at = null;
+    }
 
     if (search) {
       where.OR = [
@@ -139,6 +148,8 @@ class MedicineService {
       data: updateData,
     });
 
+    try { auditLogsService.logAction(null, 'medicine.update', { medicine_id: updated.id }); } catch (e) {}
+
     return updated;
   }
 
@@ -162,11 +173,36 @@ class MedicineService {
       throw new Error('Cannot delete medicine that is used in prescriptions');
     }
 
-    await prisma.medicines.delete({
+    // Soft-delete: set deleted_at timestamp
+    await prisma.medicines.update({
       where: { id: parseInt(id) },
+      data: { deleted_at: new Date(), updated_at: new Date() }
     });
 
-    return { message: 'Medicine deleted successfully' };
+    // Audit log
+    try {
+      await auditLogsService.logAction(null, 'medicine.delete', { medicine_id: parseInt(id) });
+    } catch (e) {
+      // don't block operation if audit fails
+    }
+
+    return { message: 'Medicine soft-deleted successfully' };
+  }
+
+  async restoreMedicine(id) {
+    const medicine = await prisma.medicines.findUnique({ where: { id: parseInt(id) } });
+    if (!medicine) throw new Error('Medicine not found');
+
+    await prisma.medicines.update({
+      where: { id: parseInt(id) },
+      data: { deleted_at: null, updated_at: new Date() }
+    });
+
+    try {
+      await auditLogsService.logAction(null, 'medicine.restore', { medicine_id: parseInt(id) });
+    } catch (e) {}
+
+    return { message: 'Medicine restored successfully' };
   }
 
   // Stock CRUD
@@ -379,6 +415,75 @@ class MedicineService {
     });
 
     return expiringStocks;
+  }
+
+  async importMedicines(medicinesData) {
+    const results = {
+      success: [],
+      errors: [],
+      total: medicinesData.length
+    };
+    
+    for (const medicineData of medicinesData) {
+      try {
+        // Check if medicine already exists by code or name
+        let medicine;
+        
+        if (medicineData.code) {
+          medicine = await prisma.medicines.findUnique({
+            where: { code: medicineData.code }
+          });
+        }
+        
+        if (!medicine) {
+          // Try to find by name
+          medicine = await prisma.medicines.findFirst({
+            where: { name: medicineData.name }
+          });
+        }
+        
+        if (!medicine) {
+          // Create new medicine
+          medicine = await prisma.medicines.create({
+            data: {
+              name: medicineData.name,
+              code: medicineData.code,
+              description: medicineData.description,
+              unit: medicineData.unit,
+              price: medicineData.price || 0,
+            },
+          });
+        }
+        
+        // Create stock entry
+        const stock = await prisma.stocks.create({
+          data: {
+            medicine_id: medicine.id,
+            batch_number: medicineData.batch_number,
+            expiry_date: new Date(medicineData.expiry_date),
+            quantity: medicineData.quantity,
+          },
+          include: {
+            medicine: true,
+          },
+        });
+        
+        results.success.push({
+          medicine: medicine,
+          stock: stock,
+        });
+        
+      } catch (error) {
+        results.errors.push({
+          data: medicineData,
+          error: error.message,
+        });
+      }
+    }
+    // Audit import summary
+    try { auditLogsService.logAction(null, 'medicine.import', { total: results.total, success: results.success.length, errors: results.errors.length }); } catch (e) {}
+
+    return results;
   }
 }
 

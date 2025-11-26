@@ -1,25 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../common/Header';
-import Sidebar from '../common/Sidebar';
+import PublicHeader from '../common/PublicHeader';
 
 export default function DashboardLayout({ children, role }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isPatient = String(role || '').toLowerCase() === 'patient';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header 
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-        showMenu={true}
-      />
+      {isPatient ? (
+        <PublicHeader />
+      ) : (
+        <Header showMenu={false} />
+      )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
-          collapsed={false}
-        />
-
+      <div className="flex-1">
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6">
             {children || <Outlet />}

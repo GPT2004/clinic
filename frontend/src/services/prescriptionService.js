@@ -17,6 +17,14 @@ export const prescriptionService = {
     return await api.post('/prescriptions', data);
   },
 
+  // Notify reception that a prescription is ready for invoicing
+  notifyReception: async (id) => {
+    return await api.post(`/prescriptions/${id}/notify-reception`);
+  },
+  getForInvoicing: async (params = {}) => {
+    return await api.get('/prescriptions/for-invoicing', { params });
+  },
+
   // Update prescription (Doctor, DRAFT only)
   updatePrescription: async (id, data) => {
     return await api.put(`/prescriptions/${id}`, data);
@@ -28,8 +36,8 @@ export const prescriptionService = {
   },
 
   // Dispense prescription (Pharmacist)
-  dispensePrescription: async (id) => {
-    return await api.patch(`/prescriptions/${id}/dispense`);
+  dispensePrescription: async (id, data = {}) => {
+    return await api.patch(`/prescriptions/${id}/dispense`, data);
   },
 
   // Delete prescription (Doctor/Admin, DRAFT only)
@@ -39,7 +47,7 @@ export const prescriptionService = {
 
   // Download prescription PDF
   downloadPrescriptionPDF: async (id) => {
-    return await api.get(`/prescriptions/${id}/download`, {
+    return await api.get(`/prescriptions/${id}/pdf`, {
       responseType: 'blob',
     });
   },

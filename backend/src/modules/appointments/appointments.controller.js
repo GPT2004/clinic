@@ -78,6 +78,15 @@ class AppointmentController {
     }
   }
 
+  async deleteAppointment(req, res, next) {
+    try {
+      const result = await appointmentService.deleteAppointment(req.params.id, req.user);
+      return successResponse(res, result, 'Appointment deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async startAppointment(req, res, next) {
     try {
       const appointment = await appointmentService.startAppointment(req.params.id);
@@ -100,6 +109,70 @@ class AppointmentController {
     try {
       const appointment = await appointmentService.markNoShow(req.params.id);
       return successResponse(res, appointment, 'Appointment marked as no-show');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rescheduleAppointment(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { timeslotId } = req.validatedBody;
+      const appointment = await appointmentService.rescheduleAppointment(id, timeslotId, req.user);
+      return successResponse(res, appointment, 'Appointment rescheduled successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMyAppointments(req, res, next) {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const result = await appointmentService.getMyAppointmentsForPatient(req.user, {
+        page: parseInt(page),
+        limit: parseInt(limit),
+      });
+      return successResponse(res, result, 'My appointments (upcoming + history) retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAppointmentHistory(req, res, next) {
+    try {
+      const result = await appointmentService.getAppointmentHistory(req.user);
+      return successResponse(res, result, 'Appointment history retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllAppointmentsByPatient(req, res, next) {
+    try {
+      const result = await appointmentService.getAllAppointmentsByPatient(req.user);
+      return successResponse(res, result, 'All appointments retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async patientConfirmAppointment(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await appointmentService.patientConfirmAppointment(id, req.user);
+      return successResponse(res, result, 'Appointment confirmed by patient and reception notified');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Public confirmation via token (email link)
+  async confirmByToken(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { token } = req.query;
+      const result = await appointmentService.confirmByToken(id, token);
+      return successResponse(res, result, 'Appointment confirmed via email');
     } catch (error) {
       next(error);
     }

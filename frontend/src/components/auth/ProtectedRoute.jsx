@@ -30,8 +30,16 @@ const ProtectedRoute = ({ role, roles = [], children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const userRole = getRole(user);
-  console.log("USER ROLE:", userRole, "REQUIRED ROLE:", role || roles);
+  let userRole = getRole(user);
+  // Normalize and sanitize role string (trim + lowercase)
+  if (userRole && typeof userRole === 'string') {
+    userRole = userRole.trim();
+    // Normalize "Reception" to "receptionist" for route matching
+    if (userRole.toLowerCase() === 'reception') userRole = 'receptionist';
+  }
+  const normalizedUserRole = userRole ? userRole.toLowerCase() : null;
+
+  console.debug("USER ROLE (normalized):", normalizedUserRole, "REQUIRED ROLE:", role || roles);
 
   // Nếu route không yêu cầu role cụ thể → cho vào luôn
   if (!role && roles.length === 0) {
@@ -39,13 +47,16 @@ const ProtectedRoute = ({ role, roles = [], children }) => {
   }
 
   // Check 1 role
-  if (role && userRole.toLowerCase() !== role.toLowerCase()) {
+  if (role && (!normalizedUserRole || normalizedUserRole !== String(role).trim().toLowerCase())) {
     return <Navigate to="/unauthorized" replace />;
   }
 
   // Check nhiều role
-  if (roles.length > 0 && !roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
-    return <Navigate to="/unauthorized" replace />;
+  if (roles.length > 0) {
+    const allowed = roles.map(r => String(r).trim().toLowerCase());
+    if (!normalizedUserRole || !allowed.includes(normalizedUserRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return children;
@@ -65,8 +76,13 @@ export const RoleBasedRedirect = () => {
     );
   }
 
-  const userRole = getRole(user);
+  let userRole = getRole(user);
   if (!userRole) return <Navigate to="/login" replace />;
+
+  // Normalize "Reception" to "receptionist"
+  if (userRole.toLowerCase() === 'reception') {
+    userRole = 'receptionist';
+  }
 
   const map = {
     admin: "/admin",
@@ -74,7 +90,7 @@ export const RoleBasedRedirect = () => {
     patient: "/patient",
     receptionist: "/receptionist",
     pharmacist: "/pharmacist",
-    labtech: "/lab-tech",
+    labtech: "/labtech",
   };
 
   return <Navigate to={map[userRole.toLowerCase()] || "/login"} replace />;
@@ -94,7 +110,7 @@ export const PublicRoute = ({ children }) => {
     patient: "/patient",
     receptionist: "/receptionist",
     pharmacist: "/pharmacist",
-    labtech: "/lab-tech",
+    labtech: "/labtech",
   };
 
   return userRole ? <Navigate to={map[userRole.toLowerCase()] || "/"} replace /> : children;

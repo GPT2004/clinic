@@ -11,6 +11,46 @@ class AuthController {
     }
   }
 
+  async confirmRegistration(req, res, next) {
+    try {
+      const { token } = req.query;
+      const result = await authService.confirmRegistration(token);
+      return successResponse(res, result, 'Registration confirmed');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.forgotPassword(email);
+      return successResponse(res, result, 'If the email exists, a confirmation was sent');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async confirmReset(req, res, next) {
+    try {
+      const { token } = req.query;
+      const result = await authService.confirmReset(token);
+      return successResponse(res, result, 'Password reset successful');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async checkEmail(req, res, next) {
+    try {
+      const { email } = req.query;
+      const exists = await authService.checkEmail(email);
+      return successResponse(res, { exists }, 'Email check');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async login(req, res, next) {
     try {
       const { email, password } = req.validatedBody;

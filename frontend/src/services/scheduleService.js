@@ -29,9 +29,11 @@ export const scheduleService = {
 
   // Get available timeslots
   getAvailableTimeslots: async (doctorId, date) => {
-    return await api.get('/schedules/timeslots/available', {
-      params: { doctor_id: doctorId, date },
-    });
+    const params = {
+      doctor_id: doctorId ? Number(doctorId) : undefined,
+      date: date ? String(date) : undefined,
+    };
+    return await api.get('/schedules/timeslots/available', { params });
   },
 
   // Create timeslot
@@ -63,9 +65,11 @@ export const timeslotService = {
 
   // Get available timeslots
   getAvailableTimeslots: async (doctorId, date) => {
-    return await api.get('/timeslots/available', {
-      params: { doctor_id: doctorId, date },
-    });
+    const params = {
+      doctor_id: doctorId ? Number(doctorId) : undefined,
+      date: date ? String(date) : undefined,
+    };
+    return await api.get('/timeslots/available', { params });
   },
 
   // Get doctor timeslots

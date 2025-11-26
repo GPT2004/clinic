@@ -1,4 +1,4 @@
-# Edit/Delete Modal Implementation - Hệ thống Clinic
+# Edit/Delete Modal Implementation - Hệ thống Phòng khám đa khoa
 
 ## 📋 Tóm tắt các thay đổi
 

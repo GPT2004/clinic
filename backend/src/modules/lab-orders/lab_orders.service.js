@@ -39,6 +39,7 @@ class LabOrderService {
     const labOrder = await prisma.lab_orders.create({
       data: {
         appointment_id: data.appointment_id ? parseInt(data.appointment_id) : null,
+        medical_record_id: data.medical_record_id ? parseInt(data.medical_record_id) : null,
         patient_id: parseInt(data.patient_id),
         doctor_id: parseInt(doctor_id),
         tests: data.tests,

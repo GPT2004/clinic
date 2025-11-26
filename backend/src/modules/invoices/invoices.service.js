@@ -1,5 +1,7 @@
 const prisma = require('../../config/database');
 const { ROLES, INVOICE_STATUS } = require('../../config/constants');
+const notificationsService = require('../notifications/notifications.service');
+const { PRESCRIPTION_STATUS } = require('../../config/constants');
 
 class InvoiceService {
   async createInvoice(data) {
@@ -36,12 +38,16 @@ class InvoiceService {
       const itemTotal = item.unit_price * item.quantity;
       subtotal += itemTotal;
       return {
-        ...item,
-        total: itemTotal,
+        type: item.type || 'other',
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        amount: itemTotal,
       };
     });
 
-    const tax = data.tax || Math.round(subtotal * 0.1); // 10% tax
+    // Per product decision: omit tax/VAT (tax = 0)
+    const tax = 0;
     const discount = data.discount || 0;
     const total = subtotal + tax - discount;
 
@@ -50,6 +56,7 @@ class InvoiceService {
       data: {
         appointment_id: data.appointment_id ? parseInt(data.appointment_id) : null,
         patient_id: parseInt(patient_id),
+        // Ensure item shape includes description, quantity, unit_price and amount
         items: items,
         subtotal: subtotal,
         tax: tax,
@@ -85,6 +92,88 @@ class InvoiceService {
         },
       },
     });
+
+    return invoice;
+  }
+
+  async createInvoiceFromPrescription(prescription_id, created_by = null) {
+    const prescription = await prisma.prescriptions.findUnique({
+      where: { id: parseInt(prescription_id) },
+      include: {
+        patient: true,
+        doctor: true,
+        appointment: {
+          include: {
+            doctor: true,
+          },
+        },
+      },
+    });
+
+    if (!prescription) {
+      throw new Error('Prescription not found');
+    }
+
+    // Derive invoice items from prescription items
+    const prescItems = typeof prescription.items === 'string' ? JSON.parse(prescription.items) : prescription.items;
+
+    let subtotal = 0;
+    const items = prescItems.map(item => {
+      const unit_price = item.unit_price || 0;
+      const quantity = item.quantity || 1;
+      const amount = unit_price * quantity;
+      subtotal += amount;
+      return {
+        type: 'medicine',
+        description: item.medicine_name || item.description || 'Thuốc',
+        quantity: quantity,
+        unit_price: unit_price,
+        amount: amount,
+      };
+    });
+
+    // If doctor's consultation fee is available (from appointment or prescription), add it as an item
+    try {
+      const consultFee = prescription?.appointment?.doctor?.consultation_fee || prescription?.doctor?.consultation_fee || 0;
+      if (consultFee && Number(consultFee) > 0) {
+        const consultAmount = Number(consultFee) || 0;
+        items.unshift({ type: 'consultation', description: 'Phí khám', quantity: 1, unit_price: consultAmount, amount: consultAmount });
+        subtotal += consultAmount;
+      }
+    } catch (e) {
+      // safe fallback: ignore if nested fields missing
+    }
+
+    const tax = 0;
+    const discount = 0;
+    const total = subtotal + tax - discount;
+
+    const invoice = await prisma.invoices.create({
+      data: {
+        appointment_id: prescription.appointment_id || null,
+        patient_id: prescription.patient_id,
+        prescription_id: prescription.id,
+        items: items,
+        subtotal: subtotal,
+        tax: tax,
+        discount: discount,
+        total: total,
+        status: INVOICE_STATUS.UNPAID,
+      },
+      include: {
+        patient: {
+          include: { user: true },
+        },
+        appointment: true,
+      },
+    });
+
+    // mark prescription as INVOICED so receptionist->pharmacist flow is clearer
+    try {
+      await prisma.prescriptions.update({ where: { id: parseInt(prescription.id) }, data: { status: PRESCRIPTION_STATUS.INVOICED, updated_at: new Date() } });
+    } catch (err) {
+      console.error('Failed to update prescription status to INVOICED:', err.message || err);
+    }
 
     return invoice;
   }
@@ -243,12 +332,16 @@ class InvoiceService {
         const itemTotal = item.unit_price * item.quantity;
         subtotal += itemTotal;
         return {
-          ...item,
-          total: itemTotal,
+          type: item.type || 'other',
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          amount: itemTotal,
         };
       });
 
-      const tax = data.tax !== undefined ? data.tax : Math.round(subtotal * 0.1);
+      // No tax by requirement
+      const tax = 0;
       const discount = data.discount !== undefined ? data.discount : invoice.discount;
       const total = subtotal + tax - discount;
 
@@ -324,7 +417,34 @@ class InvoiceService {
       },
     });
 
-    return updated;
+    const change = amount - invoice.total;
+
+    // If this invoice was created from a prescription, mark prescription READY_FOR_DISPENSE and notify pharmacists
+    try {
+      const inv = updated;
+      if (inv && inv.prescription_id) {
+        // Temporary hotfix: set INVOICED instead of READY_FOR_DISPENSE to avoid
+        // writing an enum value that may not exist in the DB. Apply migration
+        // to add READY_FOR_DISPENSE to the DB enum and restore expected flow.
+        await prisma.prescriptions.update({ where: { id: parseInt(inv.prescription_id) }, data: { status: PRESCRIPTION_STATUS.INVOICED, updated_at: new Date() } });
+
+        // broadcast notification to pharmacists
+        const payload = {
+          prescription_id: inv.prescription_id,
+          invoice_id: inv.id,
+          patient_id: inv.patient_id,
+          patient_user_id: inv.patient?.user?.id || null,
+          patient_name: inv.patient?.user?.full_name || inv.patient?.full_name || null,
+          patient_phone: inv.patient?.user?.phone || null,
+          message: `Prescription #${inv.prescription_id} is ready for dispensing (Invoice #${inv.id}).`,
+        };
+        await notificationsService.broadcastNotification({ role_name: 'Pharmacist', type: 'prescription_ready', payload });
+      }
+    } catch (err) {
+      console.error('Error updating prescription after payment or sending notification:', err.message || err);
+    }
+
+    return { invoice: updated, change };
   }
 
   async refundInvoice(id) {

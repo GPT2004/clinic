@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { getAllUsers } from '../../services/userService';
+import { getAllDoctors } from '../../services/doctorService';
 import { ensureArray } from '../../utils/normalize';
 import { Trash2, Edit2, Search, Stethoscope } from 'lucide-react';
 import EditDoctorModal from '../../components/admin/EditDoctorModal';
 import DeleteDoctorModal from '../../components/admin/DeleteDoctorModal';
 import AddDoctorModal from '../../components/admin/AddDoctorModal';
 import DoctorDetailModal from '../../components/admin/DoctorDetailModal';
+import ImageViewer from '../../components/common/ImageViewer';
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState([]);
@@ -16,6 +17,7 @@ export default function DoctorsPage() {
   const [deletingDoctor, setDeletingDoctor] = useState(null);
   const [addingDoctor, setAddingDoctor] = useState(false);
   const [detailDoctor, setDetailDoctor] = useState(null);
+  const [viewerUrl, setViewerUrl] = useState('');
 
   useEffect(() => {
     loadDoctors();
@@ -24,19 +26,20 @@ export default function DoctorsPage() {
   const loadDoctors = async () => {
     try {
       setLoading(true);
-      const r = await getAllUsers({ role: 'DOCTOR' });
-      const arr = ensureArray(r);
+      // request many results so admin can scroll through all doctors
+      const response = await getAllDoctors({ limit: 10000 });
+      const arr = ensureArray(response?.data?.doctors || response?.data || response);
       setDoctors(arr);
     } catch (e) {
-      // ignore
+      console.error('Error loading doctors:', e);
     } finally {
       setLoading(false);
     }
   };
 
   const filtered = (doctors || []).filter(d =>
-    (d.full_name || d.fullName || d.name || '').toLowerCase().includes(query.toLowerCase()) ||
-    (d.email || '').toLowerCase().includes(query.toLowerCase())
+    (d.user?.full_name || d.full_name || d.fullName || d.name || '').toLowerCase().includes(query.toLowerCase()) ||
+    (d.user?.email || d.email || '').toLowerCase().includes(query.toLowerCase())
   );
 
  
@@ -78,7 +81,8 @@ export default function DoctorsPage() {
         {/* Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 w-12">#</th>
@@ -107,11 +111,22 @@ export default function DoctorsPage() {
                   filtered.map((d, i) => (
                     <tr key={d.id} className="border-b border-gray-200 hover:bg-gray-50 transition cursor-pointer" onClick={() => setDetailDoctor(d)}>
                       <td className="px-6 py-4 text-sm text-gray-600">{i + 1}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{d.full_name || d.fullName || d.name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{d.email}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100">
+                          {d.user?.avatar_url ? (
+                            <img src={d.user.avatar_url} alt="avatar" className="w-full h-full object-cover cursor-pointer" onClick={(e) => { e.stopPropagation(); setViewerUrl(d.user.avatar_url); }} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">N/A</div>
+                          )}
+                        </div>
+                        <div>{d.user?.full_name || d.full_name || d.fullName || d.name}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{d.user?.email || d.email}</td>
                       <td className="px-6 py-4 text-sm">
                         <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                          {d.specialty || 'Chưa cập nhật'}
+                          {d.specialties && Array.isArray(d.specialties) && d.specialties.length > 0 
+                            ? d.specialties.join(', ') 
+                            : d.specialty || 'Chưa cập nhật'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -136,7 +151,8 @@ export default function DoctorsPage() {
                   ))
                 )}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -179,6 +195,9 @@ export default function DoctorsPage() {
           doctor={detailDoctor}
           onClose={() => setDetailDoctor(null)}
         />
+      )}
+      {viewerUrl && (
+        <ImageViewer src={viewerUrl} onClose={() => setViewerUrl('')} />
       )}
     </AdminLayout>
   );

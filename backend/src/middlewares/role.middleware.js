@@ -1,19 +1,49 @@
 const { errorResponse } = require('../utils/response');
 const prisma = require('../config/database');
 
-const authorize = (allowedRoles) => {  // ← Bỏ ...spread
+// Normalize role value to a lowercase string
+const normalizeRole = (role) => {
+  if (!role) return '';
+  if (typeof role === 'string') return role.toLowerCase();
+  if (typeof role === 'object' && role.name) return String(role.name).toLowerCase();
+  return '';
+};
+
+// Map common role aliases to canonical names
+const roleAliases = {
+  reception: 'receptionist',
+};
+
+const mapAlias = (r) => roleAliases[r] || r;
+
+const authorize = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return errorResponse(res, 'Unauthorized', 401);
     }
 
-    // Lấy role name, handle cả object và string
-    const userRole = req.user.role?.name || req.user.role;
+    // Get user's raw role and normalize it
+    const userRoleRaw = req.user.role?.name || req.user.role || '';
+    let userRole = String(userRoleRaw).toLowerCase().trim();
+    userRole = mapAlias(userRole);
 
-    // Đảm bảo allowedRoles là array
-    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    // Normalize allowed roles to lowercase for comparison
+    const roles = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles])
+      .map((r) => mapAlias(String(r).toLowerCase().trim()));
 
-    if (!roles.includes(userRole)) {
+    // Flexible matching: allow exact match or substring matches to account for
+    // slightly different role labels like 'reception account' vs 'receptionist'.
+    const matched = roles.some(r => {
+      if (!r) return false;
+      if (r === userRole) return true;
+      if (userRole.includes(r)) return true;
+      if (r.includes(userRole)) return true;
+      return false;
+    });
+
+    if (!matched) {
+      // Log helpful debug info for Forbidden attempts
+      console.error(`Forbidden request: userId=${req.user?.id} role='${userRoleRaw}' normalized='${userRole}' allowed=[${roles.join(',')}], path=${req.originalUrl}`);
       return errorResponse(res, 'Forbidden: Insufficient permissions', 403);
     }
 
@@ -26,10 +56,11 @@ const authorizeOwner = (resourceType) => {
     try {
       const resourceId = parseInt(req.params.id);
       const userId = req.user.id;
-      const userRole = req.user.role?.name || req.user.role;  // ← Cũng fix ở đây
+      const userRoleRaw = req.user.role?.name || req.user.role || '';
+      const userRole = mapAlias(String(userRoleRaw).toLowerCase());
 
-      // Admin có quyền truy cập tất cả
-      if (userRole === 'Admin') {
+      // Admin has full access
+      if (userRole === 'admin') {
         return next();
       }
 
@@ -51,11 +82,11 @@ const authorizeOwner = (resourceType) => {
             where: { id: resourceId },
             include: { patient: true, doctor: true },
           });
-          
-          const isPatientOwner = resource.patient.user_id === userId;
-          const isDoctorOwner = resource.doctor.user_id === userId;
-          
-          if (!isPatientOwner && !isDoctorOwner && userRole !== 'Receptionist') {
+
+          const isPatientOwner = resource?.patient?.user_id === userId;
+          const isDoctorOwner = resource?.doctor?.user_id === userId;
+
+          if (!isPatientOwner && !isDoctorOwner && userRole !== 'receptionist') {
             return errorResponse(res, 'You can only access your own appointments', 403);
           }
           break;
@@ -66,10 +97,10 @@ const authorizeOwner = (resourceType) => {
             where: { id: resourceId },
             include: { patient: true, doctor: true },
           });
-          
-          const isPatient = resource.patient.user_id === userId;
-          const isDoctor = resource.doctor.user_id === userId;
-          
+
+          const isPatient = resource?.patient?.user_id === userId;
+          const isDoctor = resource?.doctor?.user_id === userId;
+
           if (!isPatient && !isDoctor) {
             return errorResponse(res, 'You can only access authorized medical records', 403);
           }

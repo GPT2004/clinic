@@ -1,5 +1,6 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Prefer CRA env var, fall back to Vite-style var if available at build time
+export const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 // Roles
 export const ROLES = {
@@ -46,12 +47,14 @@ export const APPOINTMENT_STATUS_COLORS = {
 export const PRESCRIPTION_STATUS = {
   DRAFT: 'DRAFT',
   APPROVED: 'APPROVED',
+  READY_FOR_DISPENSE: 'READY_FOR_DISPENSE',
   DISPENSED: 'DISPENSED',
 };
 
 export const PRESCRIPTION_STATUS_LABELS = {
   DRAFT: 'Bản nháp',
   APPROVED: 'Đã duyệt',
+  READY_FOR_DISPENSE: 'Sẵn sàng cấp thuốc',
   DISPENSED: 'Đã phát thuốc',
 };
 
@@ -100,18 +103,15 @@ export const BLOOD_TYPE_OPTIONS = [
   { value: 'O-', label: 'O-' },
 ];
 
-// Specialties
+// Specialties - 7 chuyên khoa chính
 export const SPECIALTY_OPTIONS = [
-  { value: 'Nội khoa', label: 'Nội khoa' },
-  { value: 'Ngoại khoa', label: 'Ngoại khoa' },
-  { value: 'Sản phụ khoa', label: 'Sản phụ khoa' },
-  { value: 'Nhi khoa', label: 'Nhi khoa' },
-  { value: 'Tai Mũi Họng', label: 'Tai Mũi Họng' },
-  { value: 'Mắt', label: 'Mắt' },
-  { value: 'Da liễu', label: 'Da liễu' },
+  { value: 'Nội tổng quát', label: 'Nội tổng quát' },
   { value: 'Tim mạch', label: 'Tim mạch' },
   { value: 'Tiêu hóa', label: 'Tiêu hóa' },
-  { value: 'Thần kinh', label: 'Thần kinh' },
+  { value: 'Nội tiết', label: 'Nội tiết' },
+  { value: 'Da liễu', label: 'Da liễu' },
+  { value: 'Tai Mũi Họng', label: 'Tai Mũi Họng' },
+  { value: 'Hô hấp', label: 'Hô hấp' },
 ];
 
 // Pagination

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createDoctor } from '../../services/doctorService';
+import axios from 'axios';
 
 export default function AddDoctorModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -11,6 +12,20 @@ export default function AddDoctorModal({ onClose, onSuccess }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [specialties, setSpecialties] = useState([]);
+
+  useEffect(() => {
+    fetchSpecialties();
+  }, []);
+
+  const fetchSpecialties = async () => {
+    try {
+      const response = await axios.get('/api/doctors/public/specialties/list');
+      setSpecialties(response.data || []);
+    } catch (error) {
+      console.error('Error fetching specialties:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,8 +79,13 @@ export default function AddDoctorModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Chuyên môn</label>
-            <input name="specialty" value={formData.specialty} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Chuyên khoa</label>
+            <select name="specialty" value={formData.specialty} onChange={handleChange} className="w-full px-3 py-2 border rounded">
+              <option value="">Chọn chuyên khoa</option>
+              {specialties.map(spec => (
+                <option key={spec.id} value={spec.name}>{spec.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -24,8 +24,9 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const r = await getAllUsers();
-      const arr = ensureArray(r);
+      // request a large limit to retrieve all users for scroll view
+      const r = await getAllUsers({ limit: 10000 });
+      const arr = ensureArray(r?.data?.users || r?.data || r);
       setUsers(arr);
     } catch (e) {
       // ignore
@@ -84,7 +85,8 @@ export default function UsersPage() {
         {/* Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 w-12">#</th>
@@ -142,9 +144,10 @@ export default function UsersPage() {
                   ))
                 )}
               </tbody>
-            </table>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
 
         {/* Footer Info */}
         {filteredUsers.length > 0 && (

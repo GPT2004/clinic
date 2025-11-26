@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const prisma = require('../../config/database');
+const auditLogsService = require('../audit-logs/audit-logs.service');
 const { hashPassword, comparePassword } = require('../../utils/bcrypt');
 
 class UsersService {
@@ -9,6 +10,11 @@ class UsersService {
       const skip = (page - 1) * limit;
 
       const where = {};
+
+      // Exclude soft-deleted users by default
+      if (!filters.include_deleted) {
+        where.deleted_at = null;
+      }
 
       if (filters.role) {
         where.role = {
@@ -432,11 +438,36 @@ class UsersService {
         }
       }
 
-      await prisma.users.delete({
-        where: { id: userId }
+      // Soft-delete user
+      await prisma.users.update({
+        where: { id: userId },
+        data: { deleted_at: new Date(), is_active: false, updated_at: new Date() }
       });
+
+      try {
+        await auditLogsService.logAction(null, 'user.delete', { user_id: userId });
+      } catch (e) {}
     } catch (error) {
       console.error('Error in deleteUser:', error);
+      throw error;
+    }
+  }
+
+  async restoreUser(userId) {
+    try {
+      const user = await prisma.users.findUnique({ where: { id: userId } });
+      if (!user) throw new Error('User not found');
+
+      await prisma.users.update({
+        where: { id: userId },
+        data: { deleted_at: null, is_active: true, updated_at: new Date() }
+      });
+
+      try {
+        await auditLogsService.logAction(null, 'user.restore', { user_id: userId });
+      } catch (e) {}
+    } catch (error) {
+      console.error('Error in restoreUser:', error);
       throw error;
     }
   }

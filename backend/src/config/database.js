@@ -7,7 +7,25 @@ const prisma = new PrismaClient({
 
 // Test connection
 prisma.$connect()
-  .then(() => console.log('✅ Database connected successfully'))
+  .then(() => {
+    try {
+      const raw = process.env.DATABASE_URL || '';
+      let host = 'unknown';
+      let dbname = 'unknown';
+      try {
+        const m = raw.match(/@([^:\/]+)(?::(\d+))?\/?([^?]+)?/);
+        if (m) {
+          host = m[1];
+          dbname = m[3] || 'unknown';
+        }
+      } catch (e) {
+        // ignore
+      }
+      console.log(`✅ Database connected successfully (host=${host}, db=${dbname})`);
+    } catch (err) {
+      console.log('✅ Database connected successfully');
+    }
+  })
   .catch((err) => console.error('❌ Database connection failed:', err));
 
 // Graceful shutdown

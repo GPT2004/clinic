@@ -52,6 +52,11 @@ export const medicineService = {
     return await api.get(`/medicines/stocks/${id}`);
   },
 
+  // Get total stock for a medicine
+  getStockByMedicineId: async (medicineId) => {
+    return await api.get(`/medicines/${medicineId}/stock`);
+  },
+
   // Create stock
   createStock: async (data) => {
     return await api.post('/medicines/stocks', data);
@@ -62,9 +67,9 @@ export const medicineService = {
     return await api.put(`/medicines/stocks/${id}`, data);
   },
 
-  // Delete stock
-  deleteStock: async (id) => {
-    return await api.delete(`/medicines/stocks/${id}`);
+  // Import medicines from Excel
+  importMedicines: async (medicinesData) => {
+    return await api.post('/medicines/import', { medicines: medicinesData });
   },
 };
 
@@ -83,5 +88,6 @@ export const getStockById = medicineService.getStockById;
 export const createStock = medicineService.createStock;
 export const updateStock = medicineService.updateStock;
 export const deleteStock = medicineService.deleteStock;
+export const importMedicines = medicineService.importMedicines;
 
 export default medicineService;

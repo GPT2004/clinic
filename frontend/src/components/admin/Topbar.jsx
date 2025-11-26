@@ -9,14 +9,14 @@ export default function Topbar(){
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
     <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
       {/* Left: Title */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Bảng điều khiển Quản trị</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Bảng điều khiển Quản trị Phòng khám đa khoa</h1>
         <p className="text-sm text-gray-500">Chào mừng trở lại, {user?.full_name || user?.name || 'Admin'}</p>
       </div>
 
@@ -32,6 +32,12 @@ export default function Topbar(){
 
         {/* User Info & Avatar */}
         <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
+          <button
+            onClick={() => navigate('/')}
+            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+          >
+            Trang chủ
+          </button>
           <div className="text-right">
             <p className="text-sm font-semibold text-gray-800">{user?.full_name || user?.name || 'Admin'}</p>
             <p className="text-xs text-gray-500">{user?.email || 'admin@clinic.com'}</p>

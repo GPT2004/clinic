@@ -47,17 +47,39 @@ class TimeslotsController {
     try {
       const { doctor_id, date } = req.query;
 
+      // Validate inputs
+      const doctorIdNum = parseInt(doctor_id);
       if (!doctor_id || !date) {
-        throw new Error('doctor_id and date are required');
+        const err = new Error('doctor_id and date are required');
+        err.name = 'ValidationError';
+        throw err;
       }
 
+      if (!Number.isFinite(doctorIdNum) || doctorIdNum <= 0) {
+        const err = new Error('doctor_id must be a valid integer');
+        err.name = 'ValidationError';
+        throw err;
+      }
+
+      // Expect date in YYYY-MM-DD format to avoid strange year parsing
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const err = new Error('date must be in YYYY-MM-DD format');
+        err.name = 'ValidationError';
+        throw err;
+      }
+
+      console.log(`🔍 [getAvailableTimeslots] Fetching timeslots for doctor_id=${doctorIdNum}, date=${date}`);
+
       const timeslots = await timeslotsService.getAvailableTimeslots(
-        parseInt(doctor_id),
+        doctorIdNum,
         date
       );
 
+      console.log(`✅ [getAvailableTimeslots] Found ${timeslots.length} timeslots`);
+
       return successResponse(res, timeslots, 'Available timeslots retrieved successfully');
     } catch (error) {
+      console.error(`❌ [getAvailableTimeslots] Error:`, error);
       next(error);
     }
   }

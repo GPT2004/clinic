@@ -5,6 +5,7 @@ import { doctorService } from '../../../services/doctorService';
 import Button from '../../common/Button';
 import Input from '../../common/Input';
 import Modal from '../../common/Modal';
+import axios from 'axios';
 
 export default function DoctorForm({ isOpen, onClose, doctor, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -23,6 +24,11 @@ export default function DoctorForm({ isOpen, onClose, doctor, onSuccess }) {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [specialties, setSpecialties] = useState([]);
+
+  useEffect(() => {
+    fetchSpecialties();
+  }, [isOpen]);
 
   useEffect(() => {
     if (doctor) {
@@ -44,6 +50,15 @@ export default function DoctorForm({ isOpen, onClose, doctor, onSuccess }) {
       resetForm();
     }
   }, [doctor]);
+
+  const fetchSpecialties = async () => {
+    try {
+      const response = await axios.get('/api/doctors/public/specialties/list');
+      setSpecialties(response.data || []);
+    } catch (error) {
+      console.error('Error fetching specialties:', error);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -240,7 +255,7 @@ export default function DoctorForm({ isOpen, onClose, doctor, onSuccess }) {
 
             {/* Thông tin chuyên môn */}
             <div className="col-span-2 mt-4">
-              <h3 className="text-lg font-semibold mb-4">Thông tin chuyên môn</h3>
+              <h3 className="text-lg font-semibold mb-4">Thông tin chuyên khoa</h3>
             </div>
 
             <div>
@@ -253,13 +268,9 @@ export default function DoctorForm({ isOpen, onClose, doctor, onSuccess }) {
                 onChange={(e) => handleChange('specialty', e.target.value)}
               >
                 <option value="">Chọn chuyên khoa</option>
-                <option value="Nội khoa">Nội khoa</option>
-                <option value="Ngoại khoa">Ngoại khoa</option>
-                <option value="Sản phụ khoa">Sản phụ khoa</option>
-                <option value="Nhi khoa">Nhi khoa</option>
-                <option value="Tim mạch">Tim mạch</option>
-                <option value="Tiêu hóa">Tiêu hóa</option>
-                <option value="Thần kinh">Thần kinh</option>
+                {specialties.map(spec => (
+                  <option key={spec.id} value={spec.name}>{spec.name}</option>
+                ))}
               </select>
               {errors.specialty && (
                 <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>

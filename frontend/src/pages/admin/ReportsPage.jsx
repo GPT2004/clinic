@@ -13,7 +13,20 @@ export default function ReportsPage(){
     (async ()=>{ 
       try{ 
         const r = await getDashboardStats(); 
-        setSummary(r?.data || r); 
+        const data = r?.data || r || {};
+
+        // Normalize backend response keys to what the frontend expects
+        const normalized = {
+          totalPatients: data.totalPatients ?? data.users ?? 0,
+          totalDoctors: data.totalDoctors ?? data.doctors ?? 0,
+          monthAppointments: data.monthAppointments ?? data.appointments ?? 0,
+          todayAppointments: data.todayAppointments ?? 0,
+          todayRevenue: data.todayRevenue ?? 0,
+          monthRevenue: data.monthRevenue ?? 0,
+          appointmentsByStatus: data.appointmentsByStatus ?? data.appointmentsByStatus ?? {},
+        };
+
+        setSummary(normalized);
       }catch(e){ 
         setSummary(null);
       }finally{
@@ -162,7 +175,7 @@ export default function ReportsPage(){
             <p className="text-3xl font-bold text-blue-600">{(summary?.todayRevenue || 0).toLocaleString('vi-VN')} VND</p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="font-semibold text-gray-800 mb-2">Lịch hẹn hôm nay</h4>
+            <h4 className="font-semibold text-gray-800 mb-2">Lịch hẹn khám bệnh</h4>
             <p className="text-3xl font-bold text-green-600">{summary?.todayAppointments || 0}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
