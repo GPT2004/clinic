@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Calendar, Clock, User, FileText } from 'lucide-react';
+import DoctorAIDiagnosis from './DoctorAIDiagnosis';
 
 const Item = ({to, icon: Icon, children}) => (
   <NavLink
@@ -30,6 +31,11 @@ export default function SidebarDoctor(){
         <Item to="/doctor/prescriptions" icon={FileText}>Kê toa</Item>
         <Item to="/doctor/medical-records" icon={FileText}>Hồ sơ bệnh án</Item>
         <Item to="/doctor/profile" icon={User}>Hồ sơ</Item>
+        
+        {/* AI Diagnosis */}
+        <div className="pt-2 border-t border-gray-200">
+          <DoctorAIDiagnosis />
+        </div>
       </nav>
 
       <div className="p-4 border-t border-gray-200 text-xs text-gray-500">

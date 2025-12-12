@@ -22,6 +22,7 @@ const reportsRoutes = require('./modules/reports/reports.routes');
 const auditLogsRoutes = require('./modules/audit-logs/audit-logs.routes');
 const reviewsRoutes = require('./modules/reviews/reviews.routes');
 const specialtiesRoutes = require('./modules/specialties/specialties.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
 
 router.get('/health', (req, res) => {
   res.json({ 
@@ -53,5 +54,6 @@ router.use('/reports', reportsRoutes);
 router.use('/audit-logs', auditLogsRoutes);
 router.use('/reviews', reviewsRoutes);
 router.use('/specialties', specialtiesRoutes);
+router.use('/ai', aiRoutes);
 
 module.exports = router;

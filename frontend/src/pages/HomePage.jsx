@@ -5,6 +5,7 @@ import Services from '../components/patient/clinic/Services';
 import Doctors from '../components/patient/clinic/Doctors';
 import Contact from '../components/patient/clinic/Contact';
 import Footer from '../components/patient/clinic/Footer';
+import AIAssistant from '../components/patient/AIAssistant';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, Award, Clock, Users, HeartHandshake } from 'lucide-react';
 
@@ -181,11 +182,9 @@ export default function HomePage() {
       </main>
 
       <Footer />
-
-      {/* Floating Chat Button */}
-      <div className="fixed bottom-6 right-6 w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl hover:scale-110 transition-all duration-300 cursor-pointer hover:bg-emerald-700">
-        <span className="text-2xl">💬</span>
-      </div>
+      
+      {/* AI Assistant */}
+      <AIAssistant />
 
       <style>{`
         @keyframes fadeInUp {

@@ -1,4 +1,7 @@
-FROM node:18-alpine
+FROM node:18-alpine3.18
+
+# Install OpenSSL 1.1 compatibility for Prisma engine binaries (available on Alpine 3.18)
+# Also install Python for AI predictions
 
 WORKDIR /app
 
